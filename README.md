@@ -62,11 +62,11 @@ import FluentCI.Git (branch, tree)
 
 main :: Effect Unit
 main = launchAff_ do
-  mise <- liftEffect $ do
+  repo <- liftEffect $ do
    g <- git dag "https://github.com/tsirysndr/me"
    g1 <- branch g "main"
    g2 <- tree g1
    withExec g2 ["ls", "-ltr"]
     
-  stdout mise >>= Console.log
+  stdout repo >>= Console.log
 ```
