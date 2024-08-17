@@ -32,7 +32,7 @@ in  upstream
     , repo =
         "https://github.com/fluentci-io/purescript-fluentci.git"
     , version =
-        "d0d904915b1eade1f1e72ab541708ad4b43ccd5e"
+        "a0bd474a7958cd4f73a74de883f684102f16d8e7"
     }
 ```
 
