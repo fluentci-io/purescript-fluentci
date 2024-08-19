@@ -16,6 +16,9 @@ import FluentCI.Pixi as Pixi
 import FluentCI.Pkgx as Pkgx
 import FluentCI.Secret as Secret
 import FluentCI.Service as Service
+import FluentCI.Proto as Proto
+import FluentCI.Hermit as Hermit
+import FluentCI.Envhub as Envhub
 
 class Id a where
   id :: a -> Aff String
@@ -56,6 +59,12 @@ instance Id Service.Service where
 instance Id Secret.Secret where
   id secret = Secret.id secret
 
+instance Id Proto.Proto where
+  id proto = Proto.id proto
+
+instance Id Hermit.Hermit where
+  id hermit = Hermit.id hermit
+
 class Stderr a where
   stderr :: a -> Aff String
 
@@ -85,6 +94,12 @@ instance Stderr Flox.Flox where
 
 instance Stderr Directory.Directory where
   stderr directory = Directory.stderr directory
+
+instance Stderr Proto.Proto where
+  stderr proto = Proto.stderr proto
+
+instance Stderr Hermit.Hermit where
+  stderr hermit = Hermit.stderr hermit
 
 
 class Stdout a where
@@ -117,6 +132,12 @@ instance Stdout Flox.Flox where
 instance Stdout Directory.Directory where
   stdout directory = Directory.stdout directory
 
+instance Stdout Proto.Proto where
+  stdout proto = Proto.stdout proto
+
+instance Stdout Hermit.Hermit where
+  stdout hermit = Hermit.stdout hermit
+
 class AsService a where
   asService :: a -> String -> Effect Service.Service
 
@@ -143,6 +164,12 @@ instance AsService Pkgx.Pkgx where
 
 instance AsService Flox.Flox where
   asService flox name = Flox.asService flox name
+
+instance AsService Proto.Proto where
+  asService proto name = Proto.asService proto name
+
+instance AsService Hermit.Hermit where
+  asService hermit name = Hermit.asService hermit name
 
 
 class WaitOn a where
@@ -172,6 +199,13 @@ instance WaitOn Pkgx.Pkgx where
 instance WaitOn Flox.Flox where
   waitOn flox port timeout = Flox.waitOn flox port timeout
 
+instance WaitOn Proto.Proto where
+  waitOn proto port timeout = Proto.waitOn proto port timeout
+
+instance WaitOn Hermit.Hermit where
+  waitOn hermit port timeout = Hermit.waitOn hermit port timeout
+
+
 
 class WithCache a where
   withCache :: a -> Cache.Cache -> Effect a
@@ -200,8 +234,46 @@ instance WithCache Pkgx.Pkgx where
 instance WithCache Flox.Flox where
   withCache flox cache = Flox.withCache flox cache
 
+instance WithCache Proto.Proto where
+  withCache proto cache = Proto.withCache proto cache
+
+instance WithCache Hermit.Hermit where
+  withCache hermit cache = Hermit.withCache hermit cache
+
+
 class WithEnvVariable a where
   withEnvVariable :: a -> String -> String -> Effect a
+
+instance WithEnvVariable Devbox.Devbox where
+  withEnvVariable devbox name value = Devbox.withEnvVariable devbox name value
+
+instance WithEnvVariable Devenv.Devenv where
+  withEnvVariable devenv name value = Devenv.withEnvVariable devenv name value
+
+instance WithEnvVariable Nix.Nix where
+  withEnvVariable nix name value = Nix.withEnvVariable nix name value
+
+instance WithEnvVariable Mise.Mise where
+  withEnvVariable mise name value = Mise.withEnvVariable mise name value
+
+instance WithEnvVariable Pipeline.Pipeline where
+  withEnvVariable pipeline name value = Pipeline.withEnvVariable pipeline name value
+
+instance WithEnvVariable Pixi.Pixi where
+  withEnvVariable pixi name value = Pixi.withEnvVariable pixi name value
+
+instance WithEnvVariable Pkgx.Pkgx where
+  withEnvVariable pkgx name value = Pkgx.withEnvVariable pkgx name value
+
+instance WithEnvVariable Flox.Flox where
+  withEnvVariable flox name value = Flox.withEnvVariable flox name value
+
+instance WithEnvVariable Proto.Proto where 
+  withEnvVariable proto name value = Proto.withEnvVariable proto name value
+
+instance WithEnvVariable Hermit.Hermit where  
+  withEnvVariable hermit name value = Hermit.withEnvVariable hermit name value
+
 
 class WithExec a where
   withExec :: a -> Array String -> Effect a
@@ -233,6 +305,12 @@ instance WithExec Flox.Flox where
 instance WithExec Directory.Directory where
   withExec directory args = Directory.withExec directory args
 
+instance WithExec Proto.Proto where
+  withExec proto args = Proto.withExec proto args
+
+instance WithExec Hermit.Hermit where
+  withExec hermit args = Hermit.withExec hermit args
+
 class WithSecretVariable a where
   withSecretVariable :: a -> String -> Secret.Secret -> Effect a
 
@@ -259,6 +337,12 @@ instance WithSecretVariable Pkgx.Pkgx where
 
 instance WithSecretVariable Flox.Flox where
   withSecretVariable flox name secret = Flox.withSecretVariable flox name secret
+
+instance WithSecretVariable Proto.Proto where
+  withSecretVariable proto name secret = Proto.withSecretVariable proto name secret
+
+instance WithSecretVariable Hermit.Hermit where
+  withSecretVariable hermit name secret = Hermit.withSecretVariable hermit name secret
 
 class WithService a where
   withService :: a -> Service.Service -> Effect a
@@ -287,6 +371,11 @@ instance WithService Pkgx.Pkgx where
 instance WithService Flox.Flox where
   withService flox service = Flox.withService flox service
 
+instance WithService Proto.Proto where
+  withService proto service = Proto.withService proto service
+
+instance WithService Hermit.Hermit where
+  withService hermit service = Hermit.withService hermit service
 
 class WithWorkdir a where
   withWorkdir :: a -> String -> Effect a
@@ -314,6 +403,12 @@ instance WithWorkdir Pkgx.Pkgx where
 
 instance WithWorkdir Flox.Flox where
   withWorkdir flox path = Flox.withWorkdir flox path
+
+instance WithWorkdir Proto.Proto where
+  withWorkdir proto path = Proto.withWorkdir proto path
+
+instance WithWorkdir Hermit.Hermit where 
+  withWorkdir hermit path = Hermit.withWorkdir hermit path
 
 class Devbox a where
   devbox :: a -> Effect Devbox.Devbox
@@ -359,3 +454,50 @@ instance Pkgx Pipeline.Pipeline where
 
 instance Pkgx Directory.Directory where
   pkgx directory = Directory.pkgx directory
+
+class Proto a where
+  proto :: a -> Effect Proto.Proto
+
+instance Proto Pipeline.Pipeline where
+  proto pipeline = Pipeline.proto pipeline
+
+instance Proto Directory.Directory where
+  proto directory = Directory.proto directory
+
+class Hermit a where
+  hermit :: a -> Effect Hermit.Hermit
+
+instance Hermit Pipeline.Pipeline where
+  hermit pipeline = Pipeline.hermit pipeline
+
+instance Hermit Directory.Directory where
+  hermit directory = Directory.hermit directory
+
+class Flox a where
+  flox :: a -> Effect Flox.Flox
+
+instance Flox Pipeline.Pipeline where
+  flox pipeline = Pipeline.flox pipeline
+
+instance Flox Directory.Directory where
+  flox directory = Directory.flox directory
+
+class Devenv a where
+  devenv :: a -> Effect Devenv.Devenv
+
+instance Devenv Pipeline.Pipeline where
+  devenv pipeline = Pipeline.devenv pipeline
+
+instance Devenv Directory.Directory where
+  devenv directory = Directory.devenv directory
+
+class Envhub a where
+  envhub :: a -> Effect Envhub.Envhub
+
+instance Envhub Pipeline.Pipeline where
+  envhub pipeline = Pipeline.envhub pipeline
+
+instance Envhub Directory.Directory where
+  envhub directory = Directory.envhub directory
+
+

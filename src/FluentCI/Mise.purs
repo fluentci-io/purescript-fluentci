@@ -29,6 +29,8 @@ stderr mise = fromEffectFnAff $ _stderr mise
 stdout :: Mise -> Aff String
 stdout mise = fromEffectFnAff $ _stdout mise
 
+foreign import trust :: Mise -> Effect Mise
+
 foreign import waitOn :: Mise -> Int -> Int -> Effect Mise
 
 foreign import withCache :: Mise -> Cache -> Effect Mise

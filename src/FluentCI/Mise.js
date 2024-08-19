@@ -94,3 +94,9 @@ export function withWorkdir(d) {
     };
   };
 }
+
+export function trust(c) {
+  return function () {
+    return c.trust();
+  };
+}

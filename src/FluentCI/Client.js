@@ -181,3 +181,15 @@ export function setSecret(c) {
     };
   };
 }
+
+export function proto(c) {
+  return function () {
+    return c.proto();
+  };
+}
+
+export function hermit(c) {
+  return function () {
+    return c.hermit();
+  };
+}

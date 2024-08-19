@@ -59,6 +59,24 @@ export function pkgx(s) {
   };
 }
 
+export function proto(s) {
+  return function () {
+    return s.proto();
+  };
+}
+
+export function hermit(s) {
+  return function () {
+    return s.hermit();
+  };
+}
+
+export function flox(s) {
+  return function () {
+    return s.flox();
+  };
+}
+
 export function _stderr(s) {
   return function (onError, onSuccess) {
     s.stderr().then(onSuccess).catch(onError);

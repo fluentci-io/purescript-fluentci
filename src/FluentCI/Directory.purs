@@ -8,11 +8,14 @@ import Effect.Aff.Compat (EffectFnAff, fromEffectFnAff)
 import FluentCI.Cache (Cache)
 import FluentCI.Devbox (Devbox)
 import FluentCI.Devenv (Devenv)
+import FluentCI.Envhub (Envhub)
 import FluentCI.Flox (Flox)
+import FluentCI.Hermit (Hermit)
 import FluentCI.Mise (Mise)
 import FluentCI.Nix (Nix, NixArgs)
 import FluentCI.Pixi (Pixi)
 import FluentCI.Pkgx (Pkgx)
+import FluentCI.Proto (Proto)
 import FluentCI.Secret (Secret)
 import FluentCI.Service (Service)
 
@@ -54,6 +57,12 @@ foreign import nix :: Directory -> NixArgs -> Effect Nix
 foreign import pixi :: Directory -> Effect Pixi
 
 foreign import pkgx :: Directory -> Effect Pkgx
+
+foreign import proto :: Directory -> Effect Proto
+
+foreign import hermit :: Directory -> Effect Hermit
+
+foreign import envhub :: Directory -> Effect Envhub
 
 foreign import directory :: Directory -> String -> Aff Directory
 

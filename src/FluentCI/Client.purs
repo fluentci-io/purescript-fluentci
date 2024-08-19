@@ -2,6 +2,8 @@ module FluentCI.Client where
 
 import Effect (Effect)
 import FluentCI.Cache (Cache)
+import FluentCI.Hermit (Hermit)
+import FluentCI.Proto (Proto)
 import FluentCI.Devbox (Devbox)
 import FluentCI.Devenv (Devenv)
 import FluentCI.Directory (Directory, File)
@@ -53,5 +55,9 @@ foreign import pixi :: Client -> Effect Pixi
 
 
 foreign import pkgx :: Client -> Effect Pkgx
+
+foreign import proto :: Client -> Effect Proto
+
+foreign import hermit :: Client -> Effect Hermit
 
 foreign import setSecret :: Client -> String -> String -> Effect Secret

@@ -1,87 +1,16 @@
+export function asService(d) {
+  return function (name) {
+    return function () {
+      return d.asService(name);
+    };
+  };
+}
+
 export function _id(d) {
   return function (onError, onSuccess) {
     d.id().then(onSuccess).catch(onError);
     return function (cancelError, onCancelerError, onCancelerSuccess) {
       onCancelerSuccess();
-    };
-  };
-}
-
-export function devbox(d) {
-  return function () {
-    return d.devbox();
-  };
-}
-
-export function devenv(d) {
-  return function () {
-    return d.devenv();
-  };
-}
-
-export function _entries(d) {
-  return function (onError, onSuccess) {
-    d.entries().then(onSuccess).catch(onError);
-    return function (cancelError, onCancelerError, onCancelerSuccess) {
-      onCancelerSuccess();
-    };
-  };
-}
-
-export function flox(d) {
-  return function () {
-    return d.flox();
-  };
-}
-
-export function mise(d) {
-  return function () {
-    return d.mise();
-  };
-}
-
-export function nix(d) {
-  return function (args) {
-    return function () {
-      return d.nix(args);
-    };
-  };
-}
-
-export function pixi(d) {
-  return function () {
-    return d.pixi();
-  };
-}
-
-export function pkgx(d) {
-  return function () {
-    return d.pkgx();
-  };
-}
-
-export function proto(d) {
-  return function () {
-    return d.proto();
-  };
-}
-
-export function hermit(d) {
-  return function () {
-    return d.hermit();
-  };
-}
-
-export function envhub(d) {
-  return function () {
-    return d.envhub();
-  };
-}
-
-export function directory(d) {
-  return function (path) {
-    return function () {
-      return d.directory(path);
     };
   };
 }
@@ -159,29 +88,17 @@ export function withService(d) {
 }
 
 export function withWorkdir(d) {
-  return function (path) {
+  return function (workdir) {
     return function () {
-      return d.withWorkdir(path);
+      return d.withWorkdir(workdir);
     };
   };
 }
 
-export function withFile(d) {
-  return function (path) {
+export function withPackages(d) {
+  return function (packages) {
     return function () {
-      return d.withFile(path);
+      return d.withPackages(packages);
     };
-  };
-}
-
-export function zip(d) {
-  return function () {
-    return d.zip();
-  };
-}
-
-export function tarCzvf(d) {
-  return function () {
-    return d.tarCzvf();
   };
 }

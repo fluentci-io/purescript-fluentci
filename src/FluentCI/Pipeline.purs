@@ -9,10 +9,13 @@ import FluentCI.Cache (Cache)
 import FluentCI.Devbox (Devbox)
 import FluentCI.Devenv (Devenv)
 import FluentCI.Envhub (Envhub)
+import FluentCI.Flox (Flox)
+import FluentCI.Hermit (Hermit)
 import FluentCI.Mise (Mise)
 import FluentCI.Nix (Nix, NixArgs)
 import FluentCI.Pixi (Pixi)
 import FluentCI.Pkgx (Pkgx)
+import FluentCI.Proto (Proto)
 import FluentCI.Secret (Secret)
 import FluentCI.Service (Service)
 
@@ -50,6 +53,13 @@ foreign import nix :: Pipeline -> NixArgs -> Effect Nix
 foreign import pixi :: Pipeline -> Effect Pixi
 
 foreign import pkgx :: Pipeline -> Effect Pkgx
+
+foreign import proto :: Pipeline -> Effect Proto
+
+foreign import hermit :: Pipeline -> Effect Hermit
+
+foreign import flox :: Pipeline -> Effect Flox
+
 
 foreign import withCache :: Pipeline -> Cache -> Effect Pipeline
 
