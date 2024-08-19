@@ -102,3 +102,9 @@ export function withPackages(d) {
     };
   };
 }
+
+export function install(d) {
+  return function () {
+    return d.install();
+  };
+}

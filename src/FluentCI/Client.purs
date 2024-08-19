@@ -2,18 +2,19 @@ module FluentCI.Client where
 
 import Effect (Effect)
 import FluentCI.Cache (Cache)
-import FluentCI.Hermit (Hermit)
-import FluentCI.Proto (Proto)
 import FluentCI.Devbox (Devbox)
 import FluentCI.Devenv (Devenv)
 import FluentCI.Directory (Directory, File)
+import FluentCI.Envhub (Envhub)
 import FluentCI.Flox (Flox)
 import FluentCI.Git (Git)
+import FluentCI.Hermit (Hermit)
 import FluentCI.Mise (Mise)
 import FluentCI.Nix (Nix, NixArgs)
 import FluentCI.Pipeline (Pipeline)
 import FluentCI.Pixi (Pixi)
 import FluentCI.Pkgx (Pkgx)
+import FluentCI.Proto (Proto)
 import FluentCI.Secret (Secret)
 import FluentCI.SecretManager (SecretManager)
 
@@ -59,5 +60,7 @@ foreign import pkgx :: Client -> Effect Pkgx
 foreign import proto :: Client -> Effect Proto
 
 foreign import hermit :: Client -> Effect Hermit
+
+foreign import envhub :: Client -> Effect Envhub
 
 foreign import setSecret :: Client -> String -> String -> Effect Secret

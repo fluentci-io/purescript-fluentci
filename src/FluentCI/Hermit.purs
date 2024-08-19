@@ -44,3 +44,5 @@ foreign import withService :: Hermit -> Service -> Effect Hermit
 foreign import withWorkdir :: Hermit -> String -> Effect Hermit
 
 foreign import withPackages :: Hermit -> Array String -> Effect Hermit
+
+foreign import install :: Hermit -> Effect Hermit

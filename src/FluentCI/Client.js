@@ -193,3 +193,9 @@ export function hermit(c) {
     return c.hermit();
   };
 }
+
+export function envhub(c) {
+  return function () {
+    return c.envhub();
+  };
+}

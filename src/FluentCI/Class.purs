@@ -4,21 +4,22 @@ module FluentCI.Class where
 import Effect (Effect)
 import Effect.Aff (Aff)
 import FluentCI.Cache as Cache
+import FluentCI.Client as Client
 import FluentCI.Devbox as Devbox
 import FluentCI.Devenv as Devenv
 import FluentCI.Directory as Directory
+import FluentCI.Envhub as Envhub
 import FluentCI.Flox as Flox
+import FluentCI.Hermit as Hermit
 import FluentCI.Mise as Mise
 import FluentCI.Nix (NixArgs)
 import FluentCI.Nix as Nix
 import FluentCI.Pipeline as Pipeline
 import FluentCI.Pixi as Pixi
 import FluentCI.Pkgx as Pkgx
+import FluentCI.Proto as Proto
 import FluentCI.Secret as Secret
 import FluentCI.Service as Service
-import FluentCI.Proto as Proto
-import FluentCI.Hermit as Hermit
-import FluentCI.Envhub as Envhub
 
 class Id a where
   id :: a -> Aff String
@@ -419,6 +420,9 @@ instance Devbox Pipeline.Pipeline where
 instance Devbox Directory.Directory where
   devbox directory = Directory.devbox directory
 
+instance Devbox Client.Client where
+  devbox client = Client.devbox client
+
 class Mise a where
   mise :: a -> Effect Mise.Mise
 
@@ -427,6 +431,9 @@ instance Mise Pipeline.Pipeline where
 
 instance Mise Directory.Directory where
   mise directory = Directory.mise directory
+
+instance Mise Client.Client where
+  mise client = Client.mise client
 
 class Nix a where
   nix :: a -> NixArgs -> Effect Nix.Nix
@@ -437,6 +444,9 @@ instance Nix Pipeline.Pipeline where
 instance Nix Directory.Directory where
   nix directory args  = Directory.nix directory args
 
+instance Nix Client.Client where
+  nix client args = Client.nix client args
+
 class Pixi a where
   pixi :: a -> Effect Pixi.Pixi
 
@@ -445,6 +455,9 @@ instance Pixi Pipeline.Pipeline where
 
 instance Pixi Directory.Directory where
   pixi directory = Directory.pixi directory
+
+instance Pixi Client.Client where
+  pixi client = Client.pixi client
 
 class Pkgx a where
   pkgx :: a -> Effect Pkgx.Pkgx
@@ -455,6 +468,9 @@ instance Pkgx Pipeline.Pipeline where
 instance Pkgx Directory.Directory where
   pkgx directory = Directory.pkgx directory
 
+instance Pkgx Client.Client where
+  pkgx client = Client.pkgx client
+
 class Proto a where
   proto :: a -> Effect Proto.Proto
 
@@ -463,6 +479,9 @@ instance Proto Pipeline.Pipeline where
 
 instance Proto Directory.Directory where
   proto directory = Directory.proto directory
+
+instance Proto Client.Client where
+  proto client = Client.proto client
 
 class Hermit a where
   hermit :: a -> Effect Hermit.Hermit
@@ -473,6 +492,9 @@ instance Hermit Pipeline.Pipeline where
 instance Hermit Directory.Directory where
   hermit directory = Directory.hermit directory
 
+instance Hermit Client.Client where
+  hermit client = Client.hermit client
+
 class Flox a where
   flox :: a -> Effect Flox.Flox
 
@@ -481,6 +503,9 @@ instance Flox Pipeline.Pipeline where
 
 instance Flox Directory.Directory where
   flox directory = Directory.flox directory
+
+instance Flox Client.Client where
+  flox client = Client.flox client
 
 class Devenv a where
   devenv :: a -> Effect Devenv.Devenv
@@ -491,6 +516,9 @@ instance Devenv Pipeline.Pipeline where
 instance Devenv Directory.Directory where
   devenv directory = Directory.devenv directory
 
+instance Devenv Client.Client where
+  devenv client = Client.devenv client
+
 class Envhub a where
   envhub :: a -> Effect Envhub.Envhub
 
@@ -499,5 +527,8 @@ instance Envhub Pipeline.Pipeline where
 
 instance Envhub Directory.Directory where
   envhub directory = Directory.envhub directory
+
+instance Envhub Client.Client where
+  envhub client = Client.envhub client
 
 
