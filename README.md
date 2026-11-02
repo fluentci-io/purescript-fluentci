@@ -201,3 +201,36 @@ diamond, literal arguments/environment values, typed errors, cache hits, service
 resumable events/raw logs, and remote cancellation. The GitHub SDK workflow runs
 pure and transport tests; the cross-repository engine integration test is currently
 run locally with an explicitly supplied release engine binary.
+
+### Native package providers
+
+Package managers are explicit plan data too:
+
+```purescript
+ports = Plan.provider Plan.MacPortsRust
+  # Plan.withProviderExecutable "/usr/local/bin/port"
+
+packages = Plan.install "packages" "/workspace/app" ports [ "jq" ]
+
+check = Plan.task "check" "jq" "/workspace/app"
+  # Plan.withArgs [ "--version" ]
+  # Plan.needs [ packages ]
+  # Plan.withPackageEnvironment [ ports ]
+
+packagePlan = Plan.plan [ packages, check ]
+```
+
+Provider kinds are `Homebrew`, `MacPortsNative`, `MacPortsRust`, `FreeBSD`,
+`NetBSD`, and `OpenBSD`. The engine enforces the supported host platforms and
+requires managers to be provisioned explicitly. Consumer environments are local
+to their tasks. Prefix updates take exclusive leases; consumers use shared leases
+and can run concurrently. `Plan.withSharedResources` is also available for other
+cooperating read-only consumers.
+
+Install tasks are deliberately uncached. Depending on an installation step prevents
+cross-run consumer cache hits; use a separately provisioned, explicitly identified
+toolchain when caching consumers. Omitting `Plan.needs [ packages ]` does not imply
+installation ordering: the dependency graph remains explicit.
+
+The integration test uses a harmless fixture executable for package tasks; real
+package installation tests belong on disposable native CI hosts.
