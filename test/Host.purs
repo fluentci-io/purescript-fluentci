@@ -16,6 +16,7 @@ foreign import configuration :: Effect { baseUrl :: String, token :: String, cwd
 foreign import localChildStarted :: Effect Boolean
 foreign import localChildAlive :: Effect Boolean
 foreign import inspectPackages :: String -> Boolean
+foreign import inspectWorkspace :: String -> Effect Boolean
 foreign import inspectPlan :: String -> Boolean
 
 assert :: String -> Boolean -> Effect Unit
@@ -66,6 +67,11 @@ tests = do
     let localPlan = Plan.plan [Plan.task "local" "/bin/sh" config.cwd # Plan.withArgs ["-c", "printf local"]]
     local <- Local.execute localPlan { binary: config.binary, runRoot: config.cwd <> "/local-runs", progress: Local.Plain } >>= require
     liftEffect $ assert "Direct execution must use the same typed result contract" (map (\t -> t.status) local.result.tasks == [Host.TaskSucceeded])
+    let isolated = Plan.plan [Plan.task "isolated" "/bin/sh" "." # Plan.withArgs ["-c", "printf isolated > workspace-artifact"]]
+          # Plan.withWorkspace { source: config.cwd, inputs: [] }
+    copied <- Local.execute isolated { binary: config.binary, runRoot: config.cwd <> "/local-runs", progress: Local.Plain } >>= require
+    separated <- liftEffect (inspectWorkspace copied.runDirectory)
+    liftEffect $ assert "Workspace artifacts must stay under their run directory" (separated && map (\t -> t.status) copied.result.tasks == [Host.TaskSucceeded])
     let long = Plan.plan [Plan.task "cancel-local" "/bin/sh" config.cwd # Plan.withArgs ["-c", "echo $$ > local-child.pid; while :; do /bin/sleep 0.02; done"]]
     fiber <- forkAff (Local.execute long { binary: config.binary, runRoot: config.cwd <> "/local-runs", progress: Local.Plain })
     waitForChild 500

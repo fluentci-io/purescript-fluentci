@@ -1,9 +1,9 @@
 module FluentCI.Host.Plan
-  ( Task, Plan, CachePolicy, Probe, Service, PlanError(..), Provider, ProviderKind(..)
+  ( Task, Plan, Workspace, CachePolicy, Probe, Service, PlanError(..), Provider, ProviderKind(..)
   , task, taskId, withArgs, needs, withEnv, withResources, withTimeout
   , withResourceWaitTimeout, withCache, asService, service
   , plan, withJobs, withMaxServices, withFailFast, withCacheDirectory
-  , withResourceDirectory, withSharedResources, provider, withProviderExecutable, install, withPackageEnvironment, validate, compile
+  , withWorkspace, withResourceDirectory, withSharedResources, provider, withProviderExecutable, install, withPackageEnvironment, validate, compile
   ) where
 
 import Prelude
@@ -15,6 +15,7 @@ import Data.Maybe (Maybe(..), isNothing)
 import Data.Tuple (Tuple(..))
 import Foreign.Object as Object
 
+type Workspace = { source :: String, inputs :: Array String }
 type CachePolicy = { inputs :: Array String, outputs :: Array String, toolchain :: String }
 type Probe = { program :: String, args :: Array String, interval_ms :: Int, timeout_ms :: Int }
 type Service = { readiness :: Probe, startup_timeout_ms :: Int, shutdown_timeout_ms :: Int, failure_threshold :: Int }
@@ -46,7 +47,7 @@ newtype Task = Task
 newtype Plan = Plan
   { version :: Int, tasks :: Array Task, jobs :: Int, max_services :: Int
   , inherit_env :: Boolean, fail_fast :: Boolean
-  , cache_dir :: Maybe String, resource_dir :: Maybe String
+  , cache_dir :: Maybe String, resource_dir :: Maybe String, workspace :: Maybe Workspace
   }
 
 -- Preserve arbitrary environment keys, including JavaScript prototype names.
@@ -54,7 +55,8 @@ foreign import environmentJson :: Environment -> Json
 foreign import omitUnusedFields :: Json -> Json
 instance encodeTask :: EncodeJson Task where
   encodeJson (Task value) = omitUnusedFields (encodeJson (value { env = environmentJson value.env }))
-derive newtype instance encodePlan :: EncodeJson Plan
+instance encodePlan :: EncodeJson Plan where
+  encodeJson (Plan value) = omitUnusedFields (encodeJson value)
 
 data PlanError = EmptyTaskId | DuplicateTaskIds | MissingDependency String | InvalidCommand String | InvalidLimits
 
@@ -100,7 +102,7 @@ asService config (Task value) = Task (value { service = Just config })
 service :: Probe -> Service
 service readiness = { readiness, startup_timeout_ms: 30000, shutdown_timeout_ms: 5000, failure_threshold: 3 }
 plan :: Array Task -> Plan
-plan tasks = Plan { version: 1, tasks, jobs: 1, max_services: 8, inherit_env: false, fail_fast: true, cache_dir: Nothing, resource_dir: Nothing }
+plan tasks = Plan { version: 1, tasks, jobs: 1, max_services: 8, inherit_env: false, fail_fast: true, cache_dir: Nothing, resource_dir: Nothing, workspace: Nothing }
 withJobs :: Int -> Plan -> Plan
 withJobs jobs (Plan value) = Plan (value { jobs = jobs })
 withMaxServices :: Int -> Plan -> Plan
@@ -109,6 +111,8 @@ withFailFast :: Boolean -> Plan -> Plan
 withFailFast enabled (Plan value) = Plan (value { fail_fast = enabled })
 withCacheDirectory :: String -> Plan -> Plan
 withCacheDirectory directory (Plan value) = Plan (value { cache_dir = Just directory })
+withWorkspace :: Workspace -> Plan -> Plan
+withWorkspace workspace (Plan value) = Plan (value { workspace = Just workspace })
 withResourceDirectory :: String -> Plan -> Plan
 withResourceDirectory directory (Plan value) = Plan (value { resource_dir = Just directory })
 

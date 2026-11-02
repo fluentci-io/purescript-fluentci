@@ -9,7 +9,7 @@ export const configuration = () => ({
 });
 export const inspectPlan = text => {
   const plan = JSON.parse(text);
-  return plan.version === 1 && plan.inherit_env === false && plan.jobs === 2 &&
+  return !Object.hasOwn(plan, "workspace") && plan.version === 1 && plan.inherit_env === false && plan.jobs === 2 &&
     plan.tasks[0].args[0] === "literal; $VALUE" && plan.tasks[0].args[1] === "two words" &&
     Object.hasOwn(plan.tasks[0].env, "__proto__") && plan.tasks[0].env.__proto__ === "preserved" &&
     JSON.stringify(plan.tasks[3].needs) === '["left","right"]';
@@ -26,3 +26,7 @@ export const inspectPackages = text => {
   const task = JSON.parse(text).tasks[0];
   return task.package_install.provider.manager === "macports" && task.package_install.provider.backend === "rust" && task.package_install.provider.executable === "/tools/port" && task.package_install.packages[0] === "jq";
 };
+
+export const inspectWorkspace = runDirectory => () =>
+  readFileSync(`${runDirectory}/workspace/workspace-artifact`, "utf8") === "isolated" &&
+  !existsSync(`${process.env.FLUENTCI_TEST_CWD}/workspace-artifact`);

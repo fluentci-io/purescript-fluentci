@@ -249,3 +249,23 @@ key acknowledgement and rejects responses from older engines that ignore the
 header. Such a request may already have started a run, so an acknowledgement error
 must not trigger automatic retries. Ordinary `submit` retains its existing behavior
 and does not automatically retry ambiguous transport failures.
+
+### Copied run workspaces
+
+Use relative task working directories with an opt-in source copy:
+
+```purescript
+isolated = Plan.plan
+  [ Plan.task "build" "/bin/sh" "."
+      # Plan.withArgs [ "-c", "your-build-command" ]
+  ] # Plan.withWorkspace { source: "/workspace/app", inputs: [ "src", "package.json" ] }
+```
+
+`Local.execute` resolves a relative source against the caller's current directory;
+HTTP submissions require an absolute source on the server. Each run receives a
+separate copy of selected paths. Outputs stay in `runDirectory/workspace` locally;
+there is no automatic copyback. Task directories must exist in the source.
+Symlinks, special files, traversal, and overlapping input roots are rejected.
+This requires an engine with workspace support. It is not an OS sandbox: absolute
+paths and host services remain accessible. Cache keys currently include the
+physical working directory, so separate workspace runs do not share cache hits.

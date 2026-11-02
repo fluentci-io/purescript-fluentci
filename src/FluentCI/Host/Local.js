@@ -11,7 +11,8 @@ export const executeImpl = config => encoded => (onError, onSuccess) => {
       await mkdir(root, { recursive: true, mode: 0o700 });
       const directory = await mkdtemp(join(root, "run-"));
       const plan = JSON.parse(encoded);
-      for (const task of plan.tasks) task.cwd = resolve(task.cwd);
+      if (plan.workspace) plan.workspace.source = resolve(plan.workspace.source);
+      else for (const task of plan.tasks) task.cwd = resolve(task.cwd);
       for (const key of ["cache_dir", "resource_dir"]) if (plan[key] !== null && plan[key] !== undefined) plan[key] = resolve(plan[key]);
       const manifest = join(directory, "plan.json");
       const runDirectory = join(directory, "execution");
