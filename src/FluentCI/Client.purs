@@ -38,7 +38,7 @@ foreign import file :: Client -> String -> Effect File
 
 foreign import flox :: Client -> Effect Flox
 
-foreign import git :: Client -> String -> Effect Git
+foreign import git :: String -> Client -> Effect Git
 
 foreign import googleCloudSecretManager :: Client -> String -> String -> Effect SecretManager
 
@@ -50,7 +50,7 @@ foreign import mise :: Client -> Effect Mise
 
 foreign import nix :: Client -> NixArgs -> Effect Nix
 
-foreign import pipeline :: Client -> String -> Effect Pipeline
+foreign import pipeline :: String -> Client -> Effect Pipeline
 
 foreign import pixi :: Client -> Effect Pixi
 

@@ -140,276 +140,276 @@ instance Stdout Hermit.Hermit where
   stdout hermit = Hermit.stdout hermit
 
 class AsService a where
-  asService :: a -> String -> Effect Service.Service
+  asService :: String -> a -> Effect Service.Service
 
 instance AsService Devbox.Devbox where
-  asService devbox name = Devbox.asService devbox name
+  asService name devbox = Devbox.asService devbox name
 
 instance AsService Devenv.Devenv where
-  asService devenv name = Devenv.asService devenv name
+  asService name devenv = Devenv.asService devenv name
 
 instance AsService Nix.Nix where
-  asService nix name = Nix.asService nix name
+  asService name nix = Nix.asService nix name
 
 instance AsService Mise.Mise where
-  asService mise name = Mise.asService mise name
+  asService name mise = Mise.asService mise name
 
 instance AsService Pipeline.Pipeline where
-  asService pipeline name = Pipeline.asService pipeline name
+  asService name pipeline = Pipeline.asService name pipeline
 
 instance AsService Pixi.Pixi where
-  asService pixi name = Pixi.asService pixi name
+  asService name pixi = Pixi.asService pixi name
 
 instance AsService Pkgx.Pkgx where
-  asService pkgx = Pkgx.asService pkgx
+  asService name pkgx = Pkgx.asService pkgx name
 
 instance AsService Flox.Flox where
-  asService flox name = Flox.asService flox name
+  asService name flox = Flox.asService flox name
 
 instance AsService Proto.Proto where
-  asService proto name = Proto.asService proto name
+  asService name proto = Proto.asService proto name
 
 instance AsService Hermit.Hermit where
-  asService hermit name = Hermit.asService hermit name
+  asService name hermit = Hermit.asService hermit name
 
 
 class WaitOn a where
-  waitOn :: a -> Int -> Int -> Effect a
+  waitOn :: Int -> Int -> a -> Effect a
 
 instance WaitOn Devbox.Devbox where
-  waitOn devbox port timeout = Devbox.waitOn devbox port timeout
+  waitOn port timeout devbox = Devbox.waitOn devbox port timeout
 
 instance WaitOn Devenv.Devenv where
-  waitOn devenv port timeout = Devenv.waitOn devenv port timeout
+  waitOn port timeout devenv = Devenv.waitOn devenv port timeout
 
 instance WaitOn Nix.Nix where
-  waitOn nix port timeout = Nix.waitOn nix port timeout
+  waitOn port timeout nix = Nix.waitOn nix port timeout
 
 instance WaitOn Mise.Mise where
-  waitOn mise port timeout = Mise.waitOn mise port timeout
+  waitOn port timeout mise = Mise.waitOn mise port timeout
 
 instance WaitOn Pipeline.Pipeline where
-  waitOn pipeline port timeout = Pipeline.waitOn pipeline port timeout
+  waitOn port timeout pipeline = Pipeline.waitOn port timeout pipeline
 
 instance WaitOn Pixi.Pixi where
-  waitOn pixi port timeout = Pixi.waitOn pixi port timeout
+  waitOn port timeout pixi = Pixi.waitOn pixi port timeout
 
 instance WaitOn Pkgx.Pkgx where
-  waitOn pkgx port timeout = Pkgx.waitOn pkgx port timeout
+  waitOn port timeout pkgx = Pkgx.waitOn pkgx port timeout
 
 instance WaitOn Flox.Flox where
-  waitOn flox port timeout = Flox.waitOn flox port timeout
+  waitOn port timeout flox = Flox.waitOn flox port timeout
 
 instance WaitOn Proto.Proto where
-  waitOn proto port timeout = Proto.waitOn proto port timeout
+  waitOn port timeout proto = Proto.waitOn proto port timeout
 
 instance WaitOn Hermit.Hermit where
-  waitOn hermit port timeout = Hermit.waitOn hermit port timeout
+  waitOn port timeout hermit = Hermit.waitOn hermit port timeout
 
 
 
 class WithCache a where
-  withCache :: a -> Cache.Cache -> Effect a
+  withCache :: Cache.Cache -> a -> Effect a
 
 instance WithCache Devbox.Devbox where
-  withCache devbox cache = Devbox.withCache devbox cache
+  withCache cache devbox = Devbox.withCache devbox cache
 
 instance WithCache Devenv.Devenv where
-  withCache devenv cache = Devenv.withCache devenv cache
+  withCache cache devenv = Devenv.withCache devenv cache
 
 instance WithCache Nix.Nix where
-  withCache nix cache = Nix.withCache nix cache
+  withCache cache nix = Nix.withCache nix cache
 
 instance WithCache Mise.Mise where
-  withCache mise cache = Mise.withCache mise cache
+  withCache cache mise = Mise.withCache mise cache
 
 instance WithCache Pipeline.Pipeline where
-  withCache pipeline cache = Pipeline.withCache pipeline cache
+  withCache cache pipeline = Pipeline.withCache cache pipeline
 
 instance WithCache Pixi.Pixi where
-  withCache pixi cache = Pixi.withCache pixi cache
+  withCache cache pixi = Pixi.withCache pixi cache
 
 instance WithCache Pkgx.Pkgx where
-  withCache pkgx cache = Pkgx.withCache pkgx cache
+  withCache cache pkgx = Pkgx.withCache pkgx cache
 
 instance WithCache Flox.Flox where
-  withCache flox cache = Flox.withCache flox cache
+  withCache cache flox = Flox.withCache flox cache
 
 instance WithCache Proto.Proto where
-  withCache proto cache = Proto.withCache proto cache
+  withCache cache proto = Proto.withCache proto cache
 
 instance WithCache Hermit.Hermit where
-  withCache hermit cache = Hermit.withCache hermit cache
+  withCache cache hermit = Hermit.withCache hermit cache
 
 
 class WithEnvVariable a where
-  withEnvVariable :: a -> String -> String -> Effect a
+  withEnvVariable :: String -> String -> a -> Effect a
 
 instance WithEnvVariable Devbox.Devbox where
-  withEnvVariable devbox name value = Devbox.withEnvVariable devbox name value
+  withEnvVariable name value devbox = Devbox.withEnvVariable devbox name value
 
 instance WithEnvVariable Devenv.Devenv where
-  withEnvVariable devenv name value = Devenv.withEnvVariable devenv name value
+  withEnvVariable name value devenv = Devenv.withEnvVariable devenv name value
 
 instance WithEnvVariable Nix.Nix where
-  withEnvVariable nix name value = Nix.withEnvVariable nix name value
+  withEnvVariable name value nix = Nix.withEnvVariable nix name value
 
 instance WithEnvVariable Mise.Mise where
-  withEnvVariable mise name value = Mise.withEnvVariable mise name value
+  withEnvVariable name value mise = Mise.withEnvVariable mise name value
 
 instance WithEnvVariable Pipeline.Pipeline where
-  withEnvVariable pipeline name value = Pipeline.withEnvVariable pipeline name value
+  withEnvVariable name value pipeline = Pipeline.withEnvVariable name value pipeline
 
 instance WithEnvVariable Pixi.Pixi where
-  withEnvVariable pixi name value = Pixi.withEnvVariable pixi name value
+  withEnvVariable name value pixi = Pixi.withEnvVariable pixi name value
 
 instance WithEnvVariable Pkgx.Pkgx where
-  withEnvVariable pkgx name value = Pkgx.withEnvVariable pkgx name value
+  withEnvVariable name value pkgx = Pkgx.withEnvVariable pkgx name value
 
 instance WithEnvVariable Flox.Flox where
-  withEnvVariable flox name value = Flox.withEnvVariable flox name value
+  withEnvVariable name value flox = Flox.withEnvVariable flox name value
 
 instance WithEnvVariable Proto.Proto where 
-  withEnvVariable proto name value = Proto.withEnvVariable proto name value
+  withEnvVariable name value proto = Proto.withEnvVariable proto name value
 
 instance WithEnvVariable Hermit.Hermit where  
-  withEnvVariable hermit name value = Hermit.withEnvVariable hermit name value
+  withEnvVariable name value hermit = Hermit.withEnvVariable hermit name value
 
 
 class WithExec a where
-  withExec :: a -> Array String -> Effect a
+  withExec :: Array String -> a -> Effect a
 
 instance WithExec Devbox.Devbox where
-  withExec devbox args = Devbox.withExec devbox args
+  withExec args devbox = Devbox.withExec devbox args
 
 instance WithExec Devenv.Devenv where
-  withExec devenv args = Devenv.withExec devenv args
+  withExec args devenv = Devenv.withExec devenv args
 
 instance WithExec Nix.Nix where
-  withExec nix args = Nix.withExec nix args
+  withExec args nix = Nix.withExec nix args
 
 instance WithExec Mise.Mise where
-  withExec mise args = Mise.withExec mise args
+  withExec args mise = Mise.withExec mise args
 
 instance WithExec Pipeline.Pipeline where
-  withExec pipeline args = Pipeline.withExec pipeline args
+  withExec args pipeline = Pipeline.withExec args pipeline
 
 instance WithExec Pixi.Pixi where
-  withExec pixi args = Pixi.withExec pixi args
+  withExec args pixi = Pixi.withExec pixi args
 
 instance WithExec Pkgx.Pkgx where
-  withExec pkgx args = Pkgx.withExec pkgx args
+  withExec args pkgx = Pkgx.withExec pkgx args
 
 instance WithExec Flox.Flox where
-  withExec flox args = Flox.withExec flox args
+  withExec args flox = Flox.withExec flox args
 
 instance WithExec Directory.Directory where
-  withExec directory args = Directory.withExec directory args
+  withExec args directory = Directory.withExec directory args
 
 instance WithExec Proto.Proto where
-  withExec proto args = Proto.withExec proto args
+  withExec args proto = Proto.withExec proto args
 
 instance WithExec Hermit.Hermit where
-  withExec hermit args = Hermit.withExec hermit args
+  withExec args hermit = Hermit.withExec hermit args
 
 class WithSecretVariable a where
-  withSecretVariable :: a -> String -> Secret.Secret -> Effect a
+  withSecretVariable :: String -> Secret.Secret -> a -> Effect a
 
 instance WithSecretVariable Devbox.Devbox where
-  withSecretVariable devbox name secret = Devbox.withSecretVariable devbox name secret
+  withSecretVariable name secret devbox = Devbox.withSecretVariable devbox name secret
 
 instance WithSecretVariable Devenv.Devenv where
-  withSecretVariable devenv name secret = Devenv.withSecretVariable devenv name secret
+  withSecretVariable name secret devenv = Devenv.withSecretVariable devenv name secret
 
 instance WithSecretVariable Nix.Nix where
-  withSecretVariable nix name secret = Nix.withSecretVariable nix name secret
+  withSecretVariable name secret nix = Nix.withSecretVariable nix name secret
 
 instance WithSecretVariable Mise.Mise where
-  withSecretVariable mise name secret = Mise.withSecretVariable mise name secret
+  withSecretVariable name secret mise = Mise.withSecretVariable mise name secret
 
 instance WithSecretVariable Pipeline.Pipeline where
-  withSecretVariable pipeline name secret = Pipeline.withSecretVariable pipeline name secret
+  withSecretVariable name secret pipeline = Pipeline.withSecretVariable name secret pipeline
 
 instance WithSecretVariable Pixi.Pixi where
-  withSecretVariable pixi name secret = Pixi.withSecretVariable pixi name secret
+  withSecretVariable name secret pixi = Pixi.withSecretVariable pixi name secret
 
 instance WithSecretVariable Pkgx.Pkgx where
-  withSecretVariable pkgx name secret = Pkgx.withSecretVariable pkgx name secret
+  withSecretVariable name secret pkgx = Pkgx.withSecretVariable pkgx name secret
 
 instance WithSecretVariable Flox.Flox where
-  withSecretVariable flox name secret = Flox.withSecretVariable flox name secret
+  withSecretVariable name secret flox = Flox.withSecretVariable flox name secret
 
 instance WithSecretVariable Proto.Proto where
-  withSecretVariable proto name secret = Proto.withSecretVariable proto name secret
+  withSecretVariable name secret proto = Proto.withSecretVariable proto name secret
 
 instance WithSecretVariable Hermit.Hermit where
-  withSecretVariable hermit name secret = Hermit.withSecretVariable hermit name secret
+  withSecretVariable name secret hermit = Hermit.withSecretVariable hermit name secret
 
 class WithService a where
-  withService :: a -> Service.Service -> Effect a
+  withService :: Service.Service -> a -> Effect a
 
 instance WithService Devbox.Devbox where
-  withService devbox service = Devbox.withService devbox service
+  withService service devbox = Devbox.withService devbox service
 
 instance WithService Devenv.Devenv where
-  withService devenv service = Devenv.withService devenv service
+  withService service devenv = Devenv.withService devenv service
 
 instance WithService Nix.Nix where
-  withService nix service = Nix.withService nix service
+  withService service nix = Nix.withService nix service
 
 instance WithService Mise.Mise where
-  withService mise service = Mise.withService mise service
+  withService service mise = Mise.withService mise service
 
 instance WithService Pipeline.Pipeline where
-  withService pipeline service = Pipeline.withService pipeline service
+  withService service pipeline = Pipeline.withService service pipeline
 
 instance WithService Pixi.Pixi where
-  withService pixi service = Pixi.withService pixi service
+  withService service pixi = Pixi.withService pixi service
 
 instance WithService Pkgx.Pkgx where
-  withService pkgx service = Pkgx.withService pkgx service
+  withService service pkgx = Pkgx.withService pkgx service
 
 instance WithService Flox.Flox where
-  withService flox service = Flox.withService flox service
+  withService service flox = Flox.withService flox service
 
 instance WithService Proto.Proto where
-  withService proto service = Proto.withService proto service
+  withService service proto = Proto.withService proto service
 
 instance WithService Hermit.Hermit where
-  withService hermit service = Hermit.withService hermit service
+  withService service hermit = Hermit.withService hermit service
 
 class WithWorkdir a where
-  withWorkdir :: a -> String -> Effect a
+  withWorkdir :: String -> a -> Effect a
 
 instance WithWorkdir Devbox.Devbox where
-  withWorkdir devbox path = Devbox.withWorkdir devbox path
+  withWorkdir path devbox = Devbox.withWorkdir devbox path
 
 instance WithWorkdir Devenv.Devenv where
-  withWorkdir devenv path = Devenv.withWorkdir devenv path
+  withWorkdir path devenv = Devenv.withWorkdir devenv path
 
 instance WithWorkdir Nix.Nix where
-  withWorkdir nix path = Nix.withWorkdir nix path
+  withWorkdir path nix = Nix.withWorkdir nix path
 
 instance WithWorkdir Mise.Mise where
-  withWorkdir mise path = Mise.withWorkdir mise path
+  withWorkdir path mise = Mise.withWorkdir mise path
 
 instance WithWorkdir Pipeline.Pipeline where
-  withWorkdir pipeline path = Pipeline.withWorkdir pipeline path
+  withWorkdir path pipeline = Pipeline.withWorkdir path pipeline
 
 instance WithWorkdir Pixi.Pixi where
-  withWorkdir pixi path = Pixi.withWorkdir pixi path
+  withWorkdir path pixi = Pixi.withWorkdir pixi path
 
 instance WithWorkdir Pkgx.Pkgx where
-  withWorkdir pkgx path = Pkgx.withWorkdir pkgx path
+  withWorkdir path pkgx = Pkgx.withWorkdir pkgx path
 
 instance WithWorkdir Flox.Flox where
-  withWorkdir flox path = Flox.withWorkdir flox path
+  withWorkdir path flox = Flox.withWorkdir flox path
 
 instance WithWorkdir Proto.Proto where
-  withWorkdir proto path = Proto.withWorkdir proto path
+  withWorkdir path proto = Proto.withWorkdir proto path
 
 instance WithWorkdir Hermit.Hermit where 
-  withWorkdir hermit path = Hermit.withWorkdir hermit path
+  withWorkdir path hermit = Hermit.withWorkdir hermit path
 
 class Devbox a where
   devbox :: a -> Effect Devbox.Devbox
@@ -436,16 +436,16 @@ instance Mise Client.Client where
   mise client = Client.mise client
 
 class Nix a where
-  nix :: a -> NixArgs -> Effect Nix.Nix
+  nix :: NixArgs -> a -> Effect Nix.Nix
 
 instance Nix Pipeline.Pipeline where
-  nix pipeline args = Pipeline.nix pipeline args
+  nix args pipeline = Pipeline.nix args pipeline
 
 instance Nix Directory.Directory where
-  nix directory args  = Directory.nix directory args
+  nix args directory = Directory.nix directory args
 
 instance Nix Client.Client where
-  nix client args = Client.nix client args
+  nix args client = Client.nix client args
 
 class Pixi a where
   pixi :: a -> Effect Pixi.Pixi

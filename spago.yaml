@@ -1,0 +1,16 @@
+package:
+  name: fluentci
+  dependencies:
+    - aff
+    - effect
+    - prelude
+  test:
+    main: Test.Main
+    dependencies:
+      - control
+      - console
+      - exceptions
+workspace:
+  packageSet:
+    registry: 81.11.0
+  extraPackages: {}

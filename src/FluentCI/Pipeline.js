@@ -1,5 +1,5 @@
-export function asService(d) {
-  return function (name) {
+export function asService(name) {
+  return function (d) {
     return function () {
       return d.asService(name);
     };
@@ -39,10 +39,10 @@ export function mise(s) {
   };
 }
 
-export function nix(s) {
-  return function (args) {
+export function nix(args) {
+  return function (s) {
     return function () {
-      return s.nix();
+      return s.nix(args);
     };
   };
 }
@@ -95,9 +95,9 @@ export function _stdout(s) {
   };
 }
 
-export function waitOn(s) {
-  return function (port) {
-    return function (timeout) {
+export function waitOn(port) {
+  return function (timeout) {
+    return function (s) {
       return function () {
         return s.waitOn(port, timeout);
       };
@@ -105,17 +105,17 @@ export function waitOn(s) {
   };
 }
 
-export function withCache(s) {
-  return function (cache) {
+export function withCache(cache) {
+  return function (s) {
     return function () {
       return s.withCache(cache);
     };
   };
 }
 
-export function withEnvVariable(s) {
-  return function (name) {
-    return function (value) {
+export function withEnvVariable(name) {
+  return function (value) {
+    return function (s) {
       return function () {
         return s.withEnvVariable(name, value);
       };
@@ -123,9 +123,9 @@ export function withEnvVariable(s) {
   };
 }
 
-export function withSecretVariable(s) {
-  return function (name) {
-    return function (secret) {
+export function withSecretVariable(name) {
+  return function (secret) {
+    return function (s) {
       return function () {
         return s.withSecretVariable(name, secret);
       };
@@ -133,24 +133,24 @@ export function withSecretVariable(s) {
   };
 }
 
-export function withExec(s) {
-  return function (command) {
+export function withExec(command) {
+  return function (s) {
     return function () {
       return s.withExec(command);
     };
   };
 }
 
-export function withService(s) {
-  return function (service) {
+export function withService(service) {
+  return function (s) {
     return function () {
       return s.withService(service);
     };
   };
 }
 
-export function withWorkdir(s) {
-  return function (path) {
+export function withWorkdir(path) {
+  return function (s) {
     return function () {
       return s.withWorkdir(path);
     };

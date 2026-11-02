@@ -19,6 +19,6 @@ id git = fromEffectFnAff $ _id git
 commit :: Git -> Aff String
 commit git = fromEffectFnAff $ _commit git
 
-foreign import branch :: Git -> String -> Effect Git
+foreign import branch :: String -> Git -> Effect Git
 
 foreign import tree :: Git -> Effect Directory

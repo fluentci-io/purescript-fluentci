@@ -7,8 +7,8 @@ export function _id(s) {
   };
 }
 
-export function branch(s) {
-  return function (name) {
+export function branch(name) {
+  return function (s) {
     return function () {
       return s.branch(name);
     };

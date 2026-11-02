@@ -94,8 +94,8 @@ export function flox(c) {
   };
 }
 
-export function git(c) {
-  return function (url) {
+export function git(url) {
+  return function (c) {
     return function () {
       return c.git(url);
     };
@@ -152,8 +152,8 @@ export function nix(c) {
   };
 }
 
-export function pipeline(c) {
-  return function (name) {
+export function pipeline(name) {
+  return function (c) {
     return function () {
       return c.pipeline(name);
     };

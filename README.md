@@ -1,56 +1,61 @@
-# FluentCI Purescript SDK
+# FluentCI PureScript SDK
 
-The FluentCI Purescript SDK is a library that provides a Purescript interface to the FluentCI API.
+The FluentCI PureScript SDK provides a PureScript interface to the FluentCI API.
 
-## 🚚 Installation
+## Development
 
-Add `fluentci` to your `spago.dhall` dependencies:
-
-```dhall
-{ name = "demo"
-, dependencies = [ "aff", "console", "effect", "prelude", "fluentci" ]
-, packages = ./packages.dhall
-, sources = [ "src/**/*.purs", "test/**/*.purs" ]
-}
-```
-
-And add the following to your `packages.dhall`:
-
-```dhall
-let upstream =
-      https://github.com/purescript/package-sets/releases/download/psc-0.15.15-20240812/packages.dhall
-        sha256:557dc416167543923d0f944fdc0c7bc3e0466b9467a8fc2fba0460f8d5425725
-
-in  upstream
-  with fluentci =
-    { dependencies =
-       [ "aff"
-       , "console"
-       , "effect"
-       , "prelude"
-       ]
-    , repo =
-        "https://github.com/fluentci-io/purescript-fluentci.git"
-    , version =
-        "c0e9c1f6a0f769e3deec66eaf2e5a0c078ef8bb8"
-    }
-```
-
-Then install the package:
+Use Node.js 22.5 or newer, PureScript 0.15.16 and Spago 1.0.5:
 
 ```bash
-spago install
+npm install --global purescript@0.15.16 spago@1.0.5
+spago build
+spago test
 ```
 
-## 🚀 Quick Start
+Dependencies are configured in `spago.yaml`, with registry package set 81.11.0.
+Commit `spago.lock` when dependencies change. Tests use SDK fixtures and do not
+require a running FluentCI service.
 
-This is a quick start guide to get you up and running with the FluentCI Purescript SDK.
+## Installation
+
+Add `fluentci` to your application's `spago.yaml` dependencies and configure the
+Git dependency under `workspace.extraPackages`:
+
+```yaml
+package:
+  name: demo
+  dependencies:
+    - aff
+    - console
+    - control
+    - effect
+    - fluentci
+    - prelude
+workspace:
+  packageSet:
+    registry: 81.11.0
+  extraPackages:
+    fluentci:
+      git: https://github.com/fluentci-io/purescript-fluentci.git
+      ref: main
+```
+
+For reproducible builds, replace `main` with a commit containing this migration.
+Then run `spago install`. Execution requires a runtime that provides
+`@fluentci/sdk` (and `@fluentci/sdk/dagger` when using the Dagger bindings).
+
+## Quick start
+
+Builder methods in `FluentCI.Class` and `FluentCI.Pipeline` take configuration
+arguments first and the receiver last. `Client.git`, `Client.pipeline`, and
+`Git.branch` follow the same convention.
 
 ```purescript
-
 module Main where
 
 import Prelude
+
+import Control.Bind (bindFlipped)
 
 import Effect (Effect)
 import Effect.Aff (launchAff_)
@@ -62,11 +67,40 @@ import FluentCI.Git (branch, tree)
 
 main :: Effect Unit
 main = launchAff_ do
-  repo <- liftEffect $ do
-   g <- git dag "https://github.com/tsirysndr/me"
-   g1 <- branch g "main"
-   g2 <- tree g1
-   withExec g2 ["ls", "-ltr"]
-    
-  stdout repo >>= Console.log
+  repo <- dag
+    # git "https://github.com/tsirysndr/me"
+    # bindFlipped (branch "main")
+    # bindFlipped tree
+    # bindFlipped (withExec [ "ls", "-ltr" ])
+    # liftEffect
+  repo # stdout >>= Console.log
 ```
+
+A named pipeline works the same way:
+
+```purescript
+import Control.Bind (bindFlipped)
+import FluentCI.Client (dag, pipeline)
+import FluentCI.Pipeline (withEnvVariable, withExec, withWorkdir)
+
+-- Effect Pipeline
+build = dag
+  # pipeline "build"
+  # bindFlipped (withWorkdir "/app")
+  # bindFlipped (withEnvVariable "CI" "true")
+  # bindFlipped (withExec [ "npm", "ci" ])
+  # bindFlipped (withExec [ "npm", "test" ])
+```
+
+`#` applies a value to a function; `bindFlipped` sequences each `Effect` and
+passes its result to the next builder. `liftEffect` runs the chain inside `Aff`,
+and `stdout` evaluates the pipeline asynchronously.
+
+### Migrating existing calls
+
+The argument order changes are breaking: `withExec receiver args` becomes
+`withExec args receiver`, or `receiver # withExec args`. Likewise,
+`waitOn receiver port timeout` becomes `receiver # waitOn port timeout`.
+Use `FluentCI.Class` for the common receiver-last builder API across environment
+types. Other concrete environment modules and the Dagger API retain their
+existing argument order.

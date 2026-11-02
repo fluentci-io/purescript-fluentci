@@ -36,9 +36,9 @@ stderr pipeline = fromEffectFnAff $ _stderr pipeline
 stdout :: Pipeline -> Aff String
 stdout pipeline = fromEffectFnAff $ _stdout pipeline
 
-foreign import asService :: Pipeline -> String -> Effect Service
+foreign import asService :: String -> Pipeline -> Effect Service
 
-foreign import waitOn :: Pipeline -> Int -> Int -> Effect Pipeline
+foreign import waitOn :: Int -> Int -> Pipeline -> Effect Pipeline
 
 foreign import devbox :: Pipeline -> Effect Devbox
 
@@ -48,7 +48,7 @@ foreign import envhub :: Pipeline -> Effect Envhub
 
 foreign import mise :: Pipeline -> Effect Mise
 
-foreign import nix :: Pipeline -> NixArgs -> Effect Nix
+foreign import nix :: NixArgs -> Pipeline -> Effect Nix
 
 foreign import pixi :: Pipeline -> Effect Pixi
 
@@ -61,14 +61,14 @@ foreign import hermit :: Pipeline -> Effect Hermit
 foreign import flox :: Pipeline -> Effect Flox
 
 
-foreign import withCache :: Pipeline -> Cache -> Effect Pipeline
+foreign import withCache :: Cache -> Pipeline -> Effect Pipeline
 
-foreign import withEnvVariable :: Pipeline -> String -> String -> Effect Pipeline
+foreign import withEnvVariable :: String -> String -> Pipeline -> Effect Pipeline
 
-foreign import withSecretVariable :: Pipeline -> String -> Secret -> Effect Pipeline
+foreign import withSecretVariable :: String -> Secret -> Pipeline -> Effect Pipeline
 
-foreign import withExec :: Pipeline -> Array String -> Effect Pipeline
+foreign import withExec :: Array String -> Pipeline -> Effect Pipeline
 
-foreign import withService :: Pipeline -> Service -> Effect Pipeline
+foreign import withService :: Service -> Pipeline -> Effect Pipeline
 
-foreign import withWorkdir :: Pipeline -> String -> Effect Pipeline
+foreign import withWorkdir :: String -> Pipeline -> Effect Pipeline
