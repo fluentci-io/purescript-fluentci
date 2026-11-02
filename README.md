@@ -305,5 +305,7 @@ probeErrors = Host.logs Host.ProbeStderr 0 "0" run engine
 These append-only streams contain readiness and health attempts with phase markers,
 separate from daemon stdout/stderr. They require an engine supporting probe logs.
 A skipped service or one cancelled before its first probe may have no probe files.
-The engine currently retains these files without a disk quota; the TUI does not yet
-stream probe output.
+The engine currently retains these files without a disk quota. Current engines also
+show probe streams in live plain/TUI output and execution events, labeled separately
+from daemon output. Journal text is a lossy UTF-8 display view; use raw streams for
+binary diagnostics.
