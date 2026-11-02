@@ -2,8 +2,16 @@ package:
   name: fluentci
   dependencies:
     - aff
+    - argonaut-codecs
+    - argonaut-core
+    - arrays
     - effect
+    - exceptions
+    - either
+    - foreign-object
+    - maybe
     - prelude
+    - tuples
   test:
     main: Test.Main
     dependencies:
