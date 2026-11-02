@@ -1,1 +1,10 @@
 export const environmentJson = entries => Object.fromEntries(entries.map(({ key, value }) => [key, value]));
+
+// Omit unused additions so ordinary command plans remain compatible with earlier
+// host-plan engines. Package/shared-lease fields appear only when requested.
+export const omitUnusedFields = value => {
+  const result = { ...value };
+  for (const key of Object.keys(result)) if (result[key] === null) delete result[key];
+  for (const key of ["shared_resources", "package_environment"]) if (result[key]?.length === 0) delete result[key];
+  return result;
+};

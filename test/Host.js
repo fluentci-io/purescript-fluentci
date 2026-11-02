@@ -4,6 +4,8 @@ export const configuration = () => ({
   token: process.env.FLUENTCI_RUN_TOKEN ?? "",
   cwd: process.env.FLUENTCI_TEST_CWD ?? "",
   binary: process.env.FLUENTCI_TEST_ENGINE ?? "",
+  packageManager: process.env.FLUENTCI_TEST_PACKAGE_MANAGER ?? "",
+  packageExecutable: process.env.FLUENTCI_TEST_PACKAGE_EXECUTABLE ?? "",
 });
 export const inspectPlan = text => {
   const plan = JSON.parse(text);
@@ -18,4 +20,9 @@ export const localChildStarted = () => existsSync(childFile());
 export const localChildAlive = () => {
   try { process.kill(Number(readFileSync(childFile(), "utf8").trim()), 0); return true; }
   catch (error) { if (error.code === "ESRCH") return false; throw error; }
+};
+
+export const inspectPackages = text => {
+  const task = JSON.parse(text).tasks[0];
+  return task.package_install.provider.manager === "macports" && task.package_install.provider.backend === "rust" && task.package_install.provider.executable === "/tools/port" && task.package_install.packages[0] === "jq";
 };

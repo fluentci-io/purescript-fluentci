@@ -20,6 +20,13 @@ with tempfile.TemporaryDirectory(prefix="fluentci-purs-e2e-") as directory:
     env = {k:v for k,v in os.environ.items() if not k.startswith("OTEL_")}
     env.update(FLUENTCI_RUN_TOKEN=secrets.token_urlsafe(32), FLUENTCI_TEST_SERVER=base,
                FLUENTCI_TEST_CWD=directory, FLUENTCI_TEST_ENGINE=str(BINARY))
+    manager = {"Darwin":"macports", "Linux":"homebrew", "FreeBSD":"freebsd", "NetBSD":"netbsd", "OpenBSD":"openbsd"}.get(os.uname().sysname, "")
+    if manager == "homebrew" and os.uname().machine != "x86_64":
+        manager = ""
+    fixture = Path(directory) / "fixture-package-manager"
+    fixture.write_text("#!/bin/sh\nprintf '%s\\n' \"$@\" > package-args\necho fixture-installed\n")
+    fixture.chmod(0o700)
+    env.update(FLUENTCI_TEST_PACKAGE_MANAGER=manager, FLUENTCI_TEST_PACKAGE_EXECUTABLE=str(fixture))
     server = subprocess.Popen([str(BINARY), "serve-runs", "--listen", f"127.0.0.1:{port}", "--data-dir", directory + "/server"], env=env, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
     try:
         deadline = time.monotonic() + 10

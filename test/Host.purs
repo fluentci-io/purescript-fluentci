@@ -12,9 +12,10 @@ import FluentCI.Host.Client as Host
 import FluentCI.Host.Local as Local
 import FluentCI.Host.Plan as Plan
 
-foreign import configuration :: Effect { baseUrl :: String, token :: String, cwd :: String, binary :: String }
+foreign import configuration :: Effect { baseUrl :: String, token :: String, cwd :: String, binary :: String, packageManager :: String, packageExecutable :: String }
 foreign import localChildStarted :: Effect Boolean
 foreign import localChildAlive :: Effect Boolean
+foreign import inspectPackages :: String -> Boolean
 foreign import inspectPlan :: String -> Boolean
 
 assert :: String -> Boolean -> Effect Unit
@@ -57,6 +58,9 @@ tests = do
     assert "Duplicate task IDs must fail locally" (Plan.compile (Plan.plan [base, base]) == Left Plan.DuplicateTaskIds)
     assert "Missing dependencies must fail locally" (Plan.compile (Plan.plan [left]) == Left (Plan.MissingDependency "base"))
     assert "Invalid limits must fail locally" (Plan.compile (diamond # Plan.withJobs 0) == Left Plan.InvalidLimits)
+  let selected = Plan.provider Plan.MacPortsRust # Plan.withProviderExecutable "/tools/port"
+  packages <- require (Plan.compile (Plan.plan [Plan.install "packages" "/tmp" selected ["jq"]]))
+  liftEffect $ assert "Package providers remain pure serializable data" (inspectPackages packages)
   config <- liftEffect configuration
   when (config.binary /= "") do
     let localPlan = Plan.plan [Plan.task "local" "/bin/sh" config.cwd # Plan.withArgs ["-c", "printf local"]]
@@ -95,6 +99,20 @@ tests = do
       liftEffect $ assert "HTTP errors must be typed" case rejected of
         Left (Host.HttpError 401 _) -> true
         _ -> false
+    when (config.packageManager /= "") do
+      let
+        kind = case config.packageManager of
+          "macports" -> Plan.MacPortsRust
+          "homebrew" -> Plan.Homebrew
+          "freebsd" -> Plan.FreeBSD
+          "netbsd" -> Plan.NetBSD
+          _ -> Plan.OpenBSD
+        runtimeProvider = Plan.provider kind # Plan.withProviderExecutable config.packageExecutable
+        installation = Plan.install "packages" config.cwd runtimeProvider ["fixture@1"]
+        consumer = command "package-consumer" "printf package-consumer" # Plan.needs [installation] # Plan.withPackageEnvironment [runtimeProvider]
+      withRun engine (Plan.plan [installation, consumer] # Plan.withResourceDirectory (config.cwd <> "/package-locks")) \run -> do
+        final <- awaitRun engine run 500
+        liftEffect $ assert "SDK package installation/environment tasks must execute" (final.status == Host.Succeeded)
     let
       cached = command "cached" "printf artifact > artifact" # Plan.withResources ["sdk-checkout"] # Plan.withCache { inputs: [], outputs: ["artifact"], toolchain: "purescript-e2e" }
       cachedPlan = Plan.plan [cached] # Plan.withCacheDirectory (config.cwd <> "/cache") # Plan.withResourceDirectory (config.cwd <> "/locks")

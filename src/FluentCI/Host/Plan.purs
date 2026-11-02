@@ -1,9 +1,9 @@
 module FluentCI.Host.Plan
-  ( Task, Plan, CachePolicy, Probe, Service, PlanError(..)
+  ( Task, Plan, CachePolicy, Probe, Service, PlanError(..), Provider, ProviderKind(..)
   , task, taskId, withArgs, needs, withEnv, withResources, withTimeout
   , withResourceWaitTimeout, withCache, asService, service
   , plan, withJobs, withMaxServices, withFailFast, withCacheDirectory
-  , withResourceDirectory, validate, compile
+  , withResourceDirectory, withSharedResources, provider, withProviderExecutable, install, withPackageEnvironment, validate, compile
   ) where
 
 import Prelude
@@ -11,17 +11,35 @@ import Data.Argonaut.Core (Json, stringify)
 import Data.Argonaut.Encode (class EncodeJson, encodeJson)
 import Data.Array as Array
 import Data.Either (Either(..))
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), isNothing)
 import Data.Tuple (Tuple(..))
 import Foreign.Object as Object
 
 type CachePolicy = { inputs :: Array String, outputs :: Array String, toolchain :: String }
 type Probe = { program :: String, args :: Array String, interval_ms :: Int, timeout_ms :: Int }
 type Service = { readiness :: Probe, startup_timeout_ms :: Int, shutdown_timeout_ms :: Int, failure_threshold :: Int }
+data ProviderKind = Homebrew | MacPortsNative | MacPortsRust | FreeBSD | NetBSD | OpenBSD
+newtype Provider = Provider { manager :: String, backend :: String, executable :: Maybe String }
+derive newtype instance encodeProvider :: EncodeJson Provider
+type Install = { provider :: Provider, packages :: Array String }
+provider :: ProviderKind -> Provider
+provider kind = case kind of
+  Homebrew -> make "homebrew" "native"
+  MacPortsNative -> make "macports" "native"
+  MacPortsRust -> make "macports" "rust"
+  FreeBSD -> make "freebsd" "native"
+  NetBSD -> make "netbsd" "native"
+  OpenBSD -> make "openbsd" "native"
+  where
+  make manager backend = Provider { manager, backend, executable: Nothing }
+withProviderExecutable :: String -> Provider -> Provider
+withProviderExecutable executable (Provider value) = Provider (value { executable = Just executable })
+
 type Environment = Array { key :: String, value :: String }
 newtype Task = Task
   { id :: String, needs :: Array String, program :: String, args :: Array String
   , cwd :: String, env :: Environment, resources :: Array String
+  , shared_resources :: Array String, package_install :: Maybe Install, package_environment :: Array Provider
   , timeout_ms :: Maybe Int, resource_wait_timeout_ms :: Maybe Int
   , cache :: Maybe CachePolicy, service :: Maybe Service
   }
@@ -33,8 +51,9 @@ newtype Plan = Plan
 
 -- Preserve arbitrary environment keys, including JavaScript prototype names.
 foreign import environmentJson :: Environment -> Json
+foreign import omitUnusedFields :: Json -> Json
 instance encodeTask :: EncodeJson Task where
-  encodeJson (Task value) = encodeJson (value { env = environmentJson value.env })
+  encodeJson (Task value) = omitUnusedFields (encodeJson (value { env = environmentJson value.env }))
 derive newtype instance encodePlan :: EncodeJson Plan
 
 data PlanError = EmptyTaskId | DuplicateTaskIds | MissingDependency String | InvalidCommand String | InvalidLimits
@@ -50,6 +69,7 @@ instance showPlanError :: Show PlanError where
 task :: String -> String -> String -> Task
 task id program cwd = Task
   { id, program, cwd, needs: [], args: [], env: [], resources: []
+  , shared_resources: [], package_install: Nothing, package_environment: []
   , timeout_ms: Nothing, resource_wait_timeout_ms: Nothing, cache: Nothing, service: Nothing
   }
 taskId :: Task -> String
@@ -62,6 +82,13 @@ withEnv :: String -> String -> Task -> Task
 withEnv key value (Task old) = Task (old { env = Array.filter (\entry -> entry.key /= key) old.env <> [{ key, value }] })
 withResources :: Array String -> Task -> Task
 withResources resources (Task value) = Task (value { resources = resources })
+withSharedResources :: Array String -> Task -> Task
+withSharedResources shared (Task value) = Task (value { shared_resources = shared })
+install :: String -> String -> Provider -> Array String -> Task
+install id cwd selected packages = case task id "" cwd of
+  Task value -> Task (value { package_install = Just { provider: selected, packages } })
+withPackageEnvironment :: Array Provider -> Task -> Task
+withPackageEnvironment providers (Task value) = Task (value { package_environment = providers })
 withTimeout :: Int -> Task -> Task
 withTimeout milliseconds (Task value) = Task (value { timeout_ms = Just milliseconds })
 withResourceWaitTimeout :: Int -> Task -> Task
@@ -97,7 +124,7 @@ validate (Plan value) = do
   case Array.find (\id -> not (Object.member ("$" <> id) index)) (Array.concatMap (\(Task t) -> t.needs) value.tasks) of
     Just missing -> Left (MissingDependency missing)
     Nothing -> Right unit
-  case Array.find (\(Task t) -> t.program == "" || t.cwd == "") value.tasks of
+  case Array.find (\(Task t) -> (t.program == "" && isNothing t.package_install) || t.cwd == "") value.tasks of
     Just (Task invalid) -> Left (InvalidCommand invalid.id)
     Nothing -> Right unit
   when (not (Array.null (Array.filter (\(Task t) -> maybeInvalid t.timeout_ms || maybeInvalid t.resource_wait_timeout_ms) value.tasks))) (Left InvalidLimits)
