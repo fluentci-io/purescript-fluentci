@@ -267,5 +267,11 @@ separate copy of selected paths. Outputs stay in `runDirectory/workspace` locall
 there is no automatic copyback. Task directories must exist in the source.
 Symlinks, special files, traversal, and overlapping input roots are rejected.
 This requires an engine with workspace support. It is not an OS sandbox: absolute
-paths and host services remain accessible. Cache keys currently include the
-physical working directory, so separate workspace runs do not share cache hits.
+paths and host services remain accessible. Cache keys include the
+physical working directory by default. For commands whose outputs and logs do not
+depend on that directory, explicitly use `Plan.withRelocatableCache` instead of
+`Plan.withCache` (with the same `{ inputs, outputs, toolchain }` record). This enables
+hits across fresh workspaces. Exact arguments/environment and dependency keys
+still participate; absolute paths in them are not rewritten. The engine cannot
+verify this guarantee: commands embedding or logging source paths should retain
+the default cache policy unless configured to produce path-independent results.

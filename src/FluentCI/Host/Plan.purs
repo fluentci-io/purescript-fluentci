@@ -1,7 +1,7 @@
 module FluentCI.Host.Plan
   ( Task, Plan, Workspace, CachePolicy, Probe, Service, PlanError(..), Provider, ProviderKind(..)
   , task, taskId, withArgs, needs, withEnv, withResources, withTimeout
-  , withResourceWaitTimeout, withCache, asService, service
+  , withResourceWaitTimeout, withCache, withRelocatableCache, asService, service
   , plan, withJobs, withMaxServices, withFailFast, withCacheDirectory
   , withWorkspace, withResourceDirectory, withSharedResources, provider, withProviderExecutable, install, withPackageEnvironment, validate, compile
   ) where
@@ -17,6 +17,7 @@ import Foreign.Object as Object
 
 type Workspace = { source :: String, inputs :: Array String }
 type CachePolicy = { inputs :: Array String, outputs :: Array String, toolchain :: String }
+type EncodedCachePolicy = { inputs :: Array String, outputs :: Array String, toolchain :: String, relocatable :: Boolean }
 type Probe = { program :: String, args :: Array String, interval_ms :: Int, timeout_ms :: Int }
 type Service = { readiness :: Probe, startup_timeout_ms :: Int, shutdown_timeout_ms :: Int, failure_threshold :: Int }
 data ProviderKind = Homebrew | MacPortsNative | MacPortsRust | FreeBSD | NetBSD | OpenBSD
@@ -42,7 +43,7 @@ newtype Task = Task
   , cwd :: String, env :: Environment, resources :: Array String
   , shared_resources :: Array String, package_install :: Maybe Install, package_environment :: Array Provider
   , timeout_ms :: Maybe Int, resource_wait_timeout_ms :: Maybe Int
-  , cache :: Maybe CachePolicy, service :: Maybe Service
+  , cache :: Maybe EncodedCachePolicy, service :: Maybe Service
   }
 newtype Plan = Plan
   { version :: Int, tasks :: Array Task, jobs :: Int, max_services :: Int
@@ -96,7 +97,10 @@ withTimeout milliseconds (Task value) = Task (value { timeout_ms = Just millisec
 withResourceWaitTimeout :: Int -> Task -> Task
 withResourceWaitTimeout milliseconds (Task value) = Task (value { resource_wait_timeout_ms = Just milliseconds })
 withCache :: CachePolicy -> Task -> Task
-withCache cache (Task value) = Task (value { cache = Just cache })
+withCache cache (Task value) = Task (value { cache = Just { inputs: cache.inputs, outputs: cache.outputs, toolchain: cache.toolchain, relocatable: false } })
+-- Requires outputs and logs to be independent of the physical working directory.
+withRelocatableCache :: CachePolicy -> Task -> Task
+withRelocatableCache cache (Task value) = Task (value { cache = Just { inputs: cache.inputs, outputs: cache.outputs, toolchain: cache.toolchain, relocatable: true } })
 asService :: Service -> Task -> Task
 asService config (Task value) = Task (value { service = Just config })
 service :: Probe -> Service

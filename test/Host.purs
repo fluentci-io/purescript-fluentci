@@ -137,6 +137,20 @@ tests = do
       report <- Host.result run engine >>= require
       liftEffect $ assert "PureScript plans must use the real action cache" (map (\t -> t.cache.outcome) report.tasks == ["hit"])
     let
+      relocated = Plan.task "relocated" "/bin/sh" "."
+        # Plan.withArgs ["-c", "printf portable > artifact"]
+        # Plan.withRelocatableCache { inputs: [], outputs: ["artifact"], toolchain: "sdk-relocatable-v1" }
+      relocatedPlan = Plan.plan [relocated]
+        # Plan.withWorkspace { source: config.cwd, inputs: [] }
+        # Plan.withCacheDirectory (config.cwd <> "/cache")
+    withRun engine relocatedPlan \run -> do
+      final <- awaitRun engine run 500
+      liftEffect $ assert "First relocatable workspace run succeeds" (final.status == Host.Succeeded)
+    withRun engine relocatedPlan \run -> do
+      void (awaitRun engine run 500)
+      report <- Host.result run engine >>= require
+      liftEffect $ assert "Explicit relocatable cache restores in a fresh server workspace" (map (\t -> t.cache.outcome) report.tasks == ["hit"])
+    let
       db = command "db" "while :; do /bin/sleep 0.02; done" # Plan.asService (Plan.service { program: "/bin/sh", args: ["-c", "exit 0"], interval_ms: 10, timeout_ms: 100 })
       consumer = command "consumer" "printf consumer" # Plan.needs [db]
     withRun engine (Plan.plan [db, consumer]) \run -> do
