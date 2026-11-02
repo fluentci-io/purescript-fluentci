@@ -234,3 +234,18 @@ installation ordering: the dependency graph remains explicit.
 
 The integration test uses a harmless fixture executable for package tasks; real
 package installation tests belong on disposable native CI hosts.
+
+
+For retryable remote submissions, retain a unique key and the same immutable plan:
+
+```purescript
+submitRelease = engine # Host.submitWithKey "release-2026-001" build
+```
+
+Retrying this call returns the same run, including after a server restart. A key
+used with a different plan returns `HttpError 409`; keys do not expire automatically.
+Use a new key only when you intend another execution. The SDK checks the server's
+key acknowledgement and rejects responses from older engines that ignore the
+header. Such a request may already have started a run, so an acknowledgement error
+must not trigger automatic retries. Ordinary `submit` retains its existing behavior
+and does not automatically retry ambiguous transport failures.

@@ -1,6 +1,6 @@
 module FluentCI.Host.Client
   ( Client, Config, Run, RunStatus(..), RunState, RunError(..), TaskResult, RunResult, EventPage, LogStream(..), LogPage, TaskStatus(..)
-  , client, runId, resumeRun, submit, status, result, cancel, events, logs
+  , client, runId, resumeRun, submit, submitWithKey, status, result, cancel, events, logs
   ) where
 
 import Prelude
@@ -71,7 +71,8 @@ instance showRunError :: Show RunError where
   show (TransportError error) = "Transport error: " <> error
   show (DecodeError error) = "Invalid engine response: " <> error
 
-type Response = { status :: Int, body :: String, nextCursor :: String, bytes :: Array Int }
+type Response = { status :: Int, body :: String, nextCursor :: String, bytes :: Array Int, idempotencyKey :: String }
+foreign import requestWithKeyImpl :: String -> Config -> Boolean -> String -> String -> String -> EffectFnAff Response
 foreign import requestImpl :: Config -> Boolean -> String -> String -> String -> EffectFnAff Response
 foreign import encodeSegment :: String -> String
 foreign import parseEvents :: (String -> Either RunError (Array Json)) -> (Array Json -> Either RunError (Array Json)) -> String -> Either RunError (Array Json)
@@ -84,8 +85,11 @@ resumeRun :: String -> Run
 resumeRun = Run
 
 request :: Boolean -> String -> String -> String -> Client -> Aff (Either RunError Response)
-request binary method route body (Client config) = do
-  response <- attempt (fromEffectFnAff (requestImpl config binary method route body))
+request binary method route body (Client config) = performRequest (requestImpl config binary method route body)
+
+performRequest :: EffectFnAff Response -> Aff (Either RunError Response)
+performRequest effect = do
+  response <- attempt (fromEffectFnAff effect)
   pure case response of
     Left error -> Left (TransportError (message error))
     Right value | value.status >= 200 && value.status < 300 -> Right value
@@ -107,6 +111,20 @@ submit plan engine = case Plan.compile plan of
       value <- response
       state <- decode value.body :: Either RunError RunState
       pure (Run state.id)
+
+-- Retain the same key and immutable plan when retrying an ambiguous submission.
+submitWithKey :: String -> Plan.Plan -> Client -> Aff (Either RunError Run)
+submitWithKey key plan (Client config) = case Plan.compile plan of
+  Left error -> pure (Left (InvalidPlan error))
+  Right body -> do
+    response <- performRequest (requestWithKeyImpl key config false "POST" "/v1/runs" body)
+    pure do
+      value <- response
+      if value.idempotencyKey /= key then
+        Left (DecodeError "engine did not acknowledge idempotency; submission may have been accepted, do not retry automatically")
+      else do
+        state <- decode value.body :: Either RunError RunState
+        pure (Run state.id)
 
 path :: Run -> String
 path (Run id) = "/v1/runs/" <> encodeSegment id

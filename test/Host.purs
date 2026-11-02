@@ -99,6 +99,15 @@ tests = do
       liftEffect $ assert "HTTP errors must be typed" case rejected of
         Left (Host.HttpError 401 _) -> true
         _ -> false
+    let retryPlan = Plan.plan [command "idempotent" "printf once >> idempotent-count"]
+    original <- Host.submitWithKey "sdk-retry" retryPlan engine >>= require
+    void (awaitRun engine original 500)
+    replayed <- Host.submitWithKey "sdk-retry" retryPlan engine >>= require
+    liftEffect $ assert "Idempotent submissions must return the same run" (Host.runId original == Host.runId replayed)
+    conflict <- Host.submitWithKey "sdk-retry" (Plan.plan [command "different" "exit 0"]) engine
+    liftEffect $ assert "Reusing a key with another plan must report a conflict" case conflict of
+      Left (Host.HttpError 409 _) -> true
+      _ -> false
     when (config.packageManager /= "") do
       let
         kind = case config.packageManager of

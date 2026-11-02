@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import http from "node:http";
-import { requestImpl, parseEvents } from "../src/FluentCI/Host/Client.js";
+import { requestImpl, requestWithKeyImpl, parseEvents } from "../src/FluentCI/Host/Client.js";
 
 async function server(handler) {
   const value = http.createServer(handler);
@@ -53,4 +53,18 @@ test("malformed event journals become decoder errors", () => {
   const parse = parseEvents(error => ({ error }))(events => ({ events }));
   assert.deepEqual(parse('{"type":"run_finished"}\n'), { events: [{ type: "run_finished" }] });
   assert.deepEqual(parse("{broken}\n"), { error: "malformed event journal" });
+});
+
+test("idempotency keys are explicit and invalid keys never reach the server", async () => {
+  const keys = [];
+  const host = await server((req, res) => { keys.push(req.headers["idempotency-key"]); if (req.headers["idempotency-key"]) res.setHeader("Idempotency-Key", req.headers["idempotency-key"]); res.end("{}"); });
+  const keyed = key => new Promise((resolve, reject) => requestWithKeyImpl(key)(config(host.baseUrl))(false)("POST")("/v1/runs")("{}")(reject, resolve));
+  try {
+    assert.equal((await keyed("release_123")).idempotencyKey, "release_123");
+    await request(config(host.baseUrl));
+    for (const invalid of ["", "../escape", "space key", "x".repeat(129)]) {
+      await assert.rejects(keyed(invalid), /invalid client configuration/);
+    }
+    assert.deepEqual(keys, ["release_123", undefined]);
+  } finally { await host.close(); }
 });
