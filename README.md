@@ -293,3 +293,17 @@ timeout. Consecutive health failures use the service's `failure_threshold`, fail
 the service, and cancel its consumers. Probe processes are supervised and cleaned
 up on timeout or cancellation. The new builder requires an engine supporting
 `service.health`; ordinary `asService` plans keep the earlier wire format.
+
+Service probe diagnostics are available as lossless bytes with the same resumable
+cursor contract as command logs:
+
+```purescript
+probeOutput = Host.logs Host.ProbeStdout 0 "0" run engine
+probeErrors = Host.logs Host.ProbeStderr 0 "0" run engine
+```
+
+These append-only streams contain readiness and health attempts with phase markers,
+separate from daemon stdout/stderr. They require an engine supporting probe logs.
+A skipped service or one cancelled before its first probe may have no probe files.
+The engine currently retains these files without a disk quota; the TUI does not yet
+stream probe output.

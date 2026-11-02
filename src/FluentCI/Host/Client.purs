@@ -54,7 +54,7 @@ instance decodeTaskStatus :: DecodeJson TaskStatus where
       "timed_out" -> Right TaskTimedOut
       other -> Left (TypeMismatch ("unknown task status: " <> other))
 
-data LogStream = Stdout | Stderr
+data LogStream = Stdout | Stderr | ProbeStdout | ProbeStderr
 type LogPage = { nextCursor :: String, bytes :: Array Int }
 type TaskResult =
   { id :: String, status :: TaskStatus, exit_code :: Maybe Int, error :: Maybe String
@@ -152,5 +152,7 @@ logs stream index cursor run engine = do
   let name = case stream of
         Stdout -> "stdout"
         Stderr -> "stderr"
+        ProbeStdout -> "probe_stdout"
+        ProbeStderr -> "probe_stderr"
   response <- request true "GET" (path run <> "/logs/" <> show index <> "/" <> name <> "?cursor=" <> encodeSegment cursor) "" engine
   pure (map (\value -> { nextCursor: value.nextCursor, bytes: value.bytes }) response)
