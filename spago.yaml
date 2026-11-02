@@ -7,7 +7,6 @@ package:
   test:
     main: Test.Main
     dependencies:
-      - control
       - console
       - exceptions
 workspace:

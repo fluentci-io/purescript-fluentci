@@ -27,7 +27,6 @@ package:
   dependencies:
     - aff
     - console
-    - control
     - effect
     - fluentci
     - prelude
@@ -55,8 +54,6 @@ module Main where
 
 import Prelude
 
-import Control.Bind (bindFlipped)
-
 import Effect (Effect)
 import Effect.Aff (launchAff_)
 import Effect.Class (liftEffect)
@@ -67,33 +64,32 @@ import FluentCI.Git (branch, tree)
 
 main :: Effect Unit
 main = launchAff_ do
-  repo <- dag
-    # git "https://github.com/tsirysndr/me"
-    # bindFlipped (branch "main")
-    # bindFlipped tree
-    # bindFlipped (withExec [ "ls", "-ltr" ])
-    # liftEffect
+  repo <- liftEffect $
+    git "https://github.com/tsirysndr/me" dag
+    >>= branch "main"
+    >>= tree
+    >>= withExec [ "ls", "-ltr" ]
   repo # stdout >>= Console.log
 ```
 
 A named pipeline works the same way:
 
 ```purescript
-import Control.Bind (bindFlipped)
 import FluentCI.Client (dag, pipeline)
 import FluentCI.Pipeline (withEnvVariable, withExec, withWorkdir)
 
 -- Effect Pipeline
-build = dag
-  # pipeline "build"
-  # bindFlipped (withWorkdir "/app")
-  # bindFlipped (withEnvVariable "CI" "true")
-  # bindFlipped (withExec [ "npm", "ci" ])
-  # bindFlipped (withExec [ "npm", "test" ])
+build =
+  pipeline "build" dag
+  >>= withWorkdir "/app"
+  >>= withEnvVariable "CI" "true"
+  >>= withExec [ "npm", "ci" ]
+  >>= withExec [ "npm", "test" ]
 ```
 
-`#` applies a value to a function; `bindFlipped` sequences each `Effect` and
-passes its result to the next builder. `liftEffect` runs the chain inside `Aff`,
+`>>=` sequences each `Effect` and passes its result to the next builder.
+It is exported by `Prelude`, so no additional import is needed.
+Use `#` for ordinary value-to-function application. `liftEffect` runs the chain inside `Aff`,
 and `stdout` evaluates the pipeline asynchronously.
 
 ### Migrating existing calls

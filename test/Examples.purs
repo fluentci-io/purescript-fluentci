@@ -3,7 +3,6 @@ module Test.Examples where
 
 import Prelude
 
-import Control.Bind (bindFlipped)
 import Effect (Effect)
 import Effect.Aff (launchAff_)
 import Effect.Class (liftEffect)
@@ -16,18 +15,17 @@ import FluentCI.Pipeline as Pipeline
 
 quickStart :: Effect Unit
 quickStart = launchAff_ do
-  repo <- dag
-    # git "https://github.com/tsirysndr/me"
-    # bindFlipped (branch "main")
-    # bindFlipped tree
-    # bindFlipped (withExec [ "ls", "-ltr" ])
-    # liftEffect
+  repo <- liftEffect $
+    git "https://github.com/tsirysndr/me" dag
+    >>= branch "main"
+    >>= tree
+    >>= withExec [ "ls", "-ltr" ]
   repo # stdout >>= Console.log
 
 build :: Effect Pipeline
-build = dag
-  # pipeline "build"
-  # bindFlipped (Pipeline.withWorkdir "/app")
-  # bindFlipped (Pipeline.withEnvVariable "CI" "true")
-  # bindFlipped (withExec [ "npm", "ci" ])
-  # bindFlipped (withExec [ "npm", "test" ])
+build =
+  pipeline "build" dag
+  >>= Pipeline.withWorkdir "/app"
+  >>= Pipeline.withEnvVariable "CI" "true"
+  >>= withExec [ "npm", "ci" ]
+  >>= withExec [ "npm", "test" ]

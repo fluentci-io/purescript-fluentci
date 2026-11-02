@@ -2,8 +2,6 @@ module Test.Main where
 
 import Prelude
 
-import Control.Bind (bindFlipped)
-
 import Effect (Effect)
 import Effect.Aff (launchAff_)
 import Effect.Class (liftEffect)
@@ -29,14 +27,13 @@ main :: Effect Unit
 main = launchAff_ do
   initial <- liftEffect fixture
   let
-    build = initial
-      # Pipeline.withWorkdir "/app"
-      # bindFlipped (Pipeline.withEnvVariable "CI" "true")
-      # bindFlipped (Pipeline.withExec [ "echo", "hello" ])
-      # bindFlipped (Pipeline.waitOn 8080 30)
-      # bindFlipped (Pipeline.withCache cache)
-      # bindFlipped (Pipeline.withSecretVariable "TOKEN" secret)
-      # bindFlipped (Pipeline.withService service)
+    build = Pipeline.withWorkdir "/app" initial
+      >>= Pipeline.withEnvVariable "CI" "true"
+      >>= Pipeline.withExec [ "echo", "hello" ]
+      >>= Pipeline.waitOn 8080 30
+      >>= Pipeline.withCache cache
+      >>= Pipeline.withSecretVariable "TOKEN" secret
+      >>= Pipeline.withService service
   liftEffect do
     before <- calls
     assert "Constructing a chain must not execute its effects" (before == [])
@@ -49,7 +46,7 @@ main = launchAff_ do
       (actual == [ "workdir:/app", "env:CI=true", "exec:echo,hello", "wait:8080:30", "cache:cache", "secret:TOKEN=secret", "service:service" ])
     void $ result # Pipeline.nix { impure: true }
     void $ result # Pipeline.asService "web"
-    void $ git # Git.branch "main" # bindFlipped Git.tree
+    void $ Git.branch "main" git >>= Git.tree
     final <- calls
     assert "Nix options, service names and Git branches must reach the SDK"
       (final == actual <> [ "nix:true", "asService:web", "branch:main", "tree:main" ])
