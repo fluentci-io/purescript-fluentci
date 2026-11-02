@@ -1,7 +1,7 @@
 module FluentCI.Host.Plan
   ( Task, Plan, Workspace, CachePolicy, Probe, Service, PlanError(..), Provider, ProviderKind(..)
   , task, taskId, withArgs, needs, withEnv, withResources, withTimeout
-  , withResourceWaitTimeout, withCache, withRelocatableCache, asService, service
+  , withResourceWaitTimeout, withCache, withRelocatableCache, asService, asServiceWithHealth, service
   , plan, withJobs, withMaxServices, withFailFast, withCacheDirectory
   , withWorkspace, withResourceDirectory, withSharedResources, provider, withProviderExecutable, install, withPackageEnvironment, validate, compile
   ) where
@@ -20,6 +20,7 @@ type CachePolicy = { inputs :: Array String, outputs :: Array String, toolchain 
 type EncodedCachePolicy = { inputs :: Array String, outputs :: Array String, toolchain :: String, relocatable :: Boolean }
 type Probe = { program :: String, args :: Array String, interval_ms :: Int, timeout_ms :: Int }
 type Service = { readiness :: Probe, startup_timeout_ms :: Int, shutdown_timeout_ms :: Int, failure_threshold :: Int }
+type EncodedService = { readiness :: Probe, health :: Maybe Probe, startup_timeout_ms :: Int, shutdown_timeout_ms :: Int, failure_threshold :: Int }
 data ProviderKind = Homebrew | MacPortsNative | MacPortsRust | FreeBSD | NetBSD | OpenBSD
 newtype Provider = Provider { manager :: String, backend :: String, executable :: Maybe String }
 derive newtype instance encodeProvider :: EncodeJson Provider
@@ -43,7 +44,7 @@ newtype Task = Task
   , cwd :: String, env :: Environment, resources :: Array String
   , shared_resources :: Array String, package_install :: Maybe Install, package_environment :: Array Provider
   , timeout_ms :: Maybe Int, resource_wait_timeout_ms :: Maybe Int
-  , cache :: Maybe EncodedCachePolicy, service :: Maybe Service
+  , cache :: Maybe EncodedCachePolicy, service :: Maybe EncodedService
   }
 newtype Plan = Plan
   { version :: Int, tasks :: Array Task, jobs :: Int, max_services :: Int
@@ -102,7 +103,11 @@ withCache cache (Task value) = Task (value { cache = Just { inputs: cache.inputs
 withRelocatableCache :: CachePolicy -> Task -> Task
 withRelocatableCache cache (Task value) = Task (value { cache = Just { inputs: cache.inputs, outputs: cache.outputs, toolchain: cache.toolchain, relocatable: true } })
 asService :: Service -> Task -> Task
-asService config (Task value) = Task (value { service = Just config })
+asService config (Task value) = Task (value { service = Just (encodeService Nothing config) })
+asServiceWithHealth :: Probe -> Service -> Task -> Task
+asServiceWithHealth health config (Task value) = Task (value { service = Just (encodeService (Just health) config) })
+encodeService :: Maybe Probe -> Service -> EncodedService
+encodeService health config = { readiness: config.readiness, health, startup_timeout_ms: config.startup_timeout_ms, shutdown_timeout_ms: config.shutdown_timeout_ms, failure_threshold: config.failure_threshold }
 service :: Probe -> Service
 service readiness = { readiness, startup_timeout_ms: 30000, shutdown_timeout_ms: 5000, failure_threshold: 3 }
 plan :: Array Task -> Plan

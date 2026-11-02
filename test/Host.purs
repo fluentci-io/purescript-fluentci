@@ -156,6 +156,14 @@ tests = do
     withRun engine (Plan.plan [db, consumer]) \run -> do
       final <- awaitRun engine run 500
       liftEffect $ assert "Service plans must gate consumers and shut down" (final.status == Host.Succeeded)
+    let
+      startup = { program: "/bin/sh", args: ["-c", "test ! -f sdk-ready && touch sdk-ready"], interval_ms: 10, timeout_ms: 100 }
+      health = { program: "/bin/sh", args: ["-c", "test -f sdk-ready && touch sdk-health"], interval_ms: 10, timeout_ms: 100 }
+      separate = command "separate-db" "while :; do /bin/sleep 0.02; done" # Plan.asServiceWithHealth health (Plan.service startup)
+      checked = command "health-consumer" "while test ! -f sdk-health; do /bin/sleep 0.01; done; /bin/sleep 0.1" # Plan.needs [separate]
+    withRun engine (Plan.plan [separate, checked]) \run -> do
+      final <- awaitRun engine run 500
+      liftEffect $ assert "Separate recurring health checks must replace one-time readiness checks" (final.status == Host.Succeeded)
     withRun engine (Plan.plan [command "cancel" "/bin/sleep 20"]) \run -> do
       void (Host.cancel run engine >>= require)
       final <- awaitRun engine run 500

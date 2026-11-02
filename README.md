@@ -275,3 +275,21 @@ hits across fresh workspaces. Exact arguments/environment and dependency keys
 still participate; absolute paths in them are not rewritten. The engine cannot
 verify this guarantee: commands embedding or logging source paths should retain
 the default cache policy unless configured to produce path-independent results.
+
+### Separate readiness and health probes
+
+Existing `Plan.asService` plans reuse readiness for recurring health checks. Use
+`Plan.asServiceWithHealth` when startup and ongoing liveness need different checks:
+
+```purescript
+ready = { program: "/tools/check-startup", args: [], interval_ms: 100, timeout_ms: 1000 }
+health = { program: "/tools/check-health", args: [], interval_ms: 500, timeout_ms: 200 }
+database = Plan.task "db" "/tools/database" "/workspace/app"
+  # Plan.asServiceWithHealth health (Plan.service ready)
+```
+
+The health probe starts only after readiness succeeds, using its own interval and
+timeout. Consecutive health failures use the service's `failure_threshold`, fail
+the service, and cancel its consumers. Probe processes are supervised and cleaned
+up on timeout or cancellation. The new builder requires an engine supporting
+`service.health`; ordinary `asService` plans keep the earlier wire format.
