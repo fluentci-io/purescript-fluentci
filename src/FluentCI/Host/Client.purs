@@ -1,5 +1,5 @@
 module FluentCI.Host.Client
-  ( Client, Config, Run, RunStatus(..), RunState, RunError(..), TaskResult, RunResult, EventPage, LogStream(..), LogPage, TaskStatus(..)
+  ( Client, Config, Run, RunStatus(..), RunState, RunError(..), TaskResult, RunResult, RunOutcome(..), EventPage, LogStream(..), LogPage, TaskStatus(..)
   , client, runId, resumeRun, submit, submitWithKey, status, result, cancel, events, logs
   ) where
 
@@ -62,7 +62,17 @@ type TaskResult =
   , cache :: { outcome :: String, key :: Maybe String, reason :: String }
   , wait_reason :: Maybe String
   }
-type RunResult = { tasks :: Array TaskResult }
+data RunOutcome = RunSucceeded | RunFailed | RunCancelled
+derive instance eqRunOutcome :: Eq RunOutcome
+instance decodeRunOutcome :: DecodeJson RunOutcome where
+  decodeJson json = do
+    value <- decodeJson json
+    case value of
+      "succeeded" -> Right RunSucceeded
+      "failed" -> Right RunFailed
+      "cancelled" -> Right RunCancelled
+      other -> Left (TypeMismatch ("unknown run outcome: " <> other))
+type RunResult = { tasks :: Array TaskResult, outcome :: Maybe RunOutcome }
 type EventPage = { nextCursor :: String, events :: Array Json }
 data RunError = InvalidPlan Plan.PlanError | HttpError Int String | TransportError String | DecodeError String
 instance showRunError :: Show RunError where

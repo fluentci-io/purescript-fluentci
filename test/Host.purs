@@ -2,6 +2,9 @@ module Test.Host (tests) where
 
 import Prelude
 import Data.Array as Array
+import Data.Argonaut.Decode (decodeJson, JsonDecodeError)
+import Data.Argonaut.Parser (jsonParser)
+import Data.Maybe (Maybe(..))
 import Data.Either (Either(..))
 import Effect (Effect)
 import Effect.Aff (Aff, Milliseconds(..), bracket, delay, forkAff, killFiber)
@@ -44,6 +47,9 @@ waitForChild attempts = do
 
 tests :: Aff Unit
 tests = do
+  legacyJson <- require (jsonParser "{\"tasks\":[]}")
+  legacy <- require (decodeJson legacyJson :: Either JsonDecodeError Host.RunResult)
+  liftEffect $ assert "Older reports without run outcomes must remain readable" (legacy.outcome == Nothing)
   let
     base = Plan.task "base" "/bin/echo" "/tmp"
     baseSnapshot = Plan.compile (Plan.plan [base])
@@ -66,6 +72,7 @@ tests = do
   when (config.binary /= "") do
     let localPlan = Plan.plan [Plan.task "local" "/bin/sh" config.cwd # Plan.withArgs ["-c", "printf local"]]
     local <- Local.execute localPlan { binary: config.binary, runRoot: config.cwd <> "/local-runs", progress: Local.Plain } >>= require
+    liftEffect $ assert "Local execution must expose its durable outcome" (local.result.outcome == Just Host.RunSucceeded)
     liftEffect $ assert "Direct execution must use the same typed result contract" (map (\t -> t.status) local.result.tasks == [Host.TaskSucceeded])
     let isolated = Plan.plan [Plan.task "isolated" "/bin/sh" "." # Plan.withArgs ["-c", "printf isolated > workspace-artifact"]]
           # Plan.withWorkspace { source: config.cwd, inputs: [] }
@@ -176,5 +183,7 @@ tests = do
       void (Host.cancel run engine >>= require)
       final <- awaitRun engine run 500
       liftEffect $ assert "Remote cancellation must persist a cancelled state" (final.status == Host.Cancelled)
+      report <- Host.result run engine >>= require
+      liftEffect $ assert "Cancelled outcome must be present in the durable result" (report.outcome == Just Host.RunCancelled)
     liftEffect (log "Host SDK server integration tests passed.")
   liftEffect (log "Pure host plan tests passed.")

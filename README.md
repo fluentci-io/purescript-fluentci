@@ -309,3 +309,10 @@ The engine currently retains these files without a disk quota. Current engines a
 show probe streams in live plain/TUI output and execution events, labeled separately
 from daemon output. Journal text is a lossy UTF-8 display view; use raw streams for
 binary diagnostics.
+
+Completed local and remote results now expose `outcome :: Maybe RunOutcome`, with
+`RunSucceeded`, `RunFailed`, or `RunCancelled`. `Nothing` means the report came from
+an older engine without a persisted outcome. New engines preserve this classification
+across restart recovery, including cancellation after some tasks have succeeded.
+A fail-fast run is `RunFailed` even if its sibling tasks were cancelled; task
+statuses remain available for the detailed breakdown.
