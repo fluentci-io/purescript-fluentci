@@ -1,6 +1,6 @@
 module FluentCI.Host.Client
-  ( Client, Config, Run, RunStatus(..), RunState, RunError(..), TaskResult, RunResult, RunOutcome(..), EventPage, LogStream(..), LogPage, TaskStatus(..)
-  , client, runId, resumeRun, submit, submitWithKey, status, result, cancel, events, logs
+  ( Client, Config, Run, RunStatus(..), RunState, RunPage, RunError(..), TaskResult, RunResult, RunOutcome(..), EventPage, LogStream(..), LogPage, TaskStatus(..)
+  , client, runId, resumeRun, submit, submitWithKey, status, result, cancel, events, logs, history
   ) where
 
 import Prelude
@@ -8,7 +8,7 @@ import Data.Argonaut.Core (Json)
 import Data.Argonaut.Decode (class DecodeJson, decodeJson, JsonDecodeError(..))
 import Data.Argonaut.Parser (jsonParser)
 import Data.Either (Either(..))
-import Data.Maybe (Maybe)
+import Data.Maybe (Maybe(..))
 import Effect.Aff (Aff, attempt)
 import Effect.Aff.Compat (EffectFnAff, fromEffectFnAff)
 import Effect.Exception (message)
@@ -17,7 +17,8 @@ import FluentCI.Host.Plan as Plan
 type Config = { baseUrl :: String, token :: String, timeoutMs :: Int }
 newtype Client = Client Config
 newtype Run = Run String
-type RunState = { id :: String, status :: RunStatus, error :: Maybe String }
+type RunState = { id :: String, status :: RunStatus, error :: Maybe String, created_at_ms :: Maybe Number }
+type RunPage = { runs :: Array RunState, next_cursor :: Maybe String }
 data RunStatus = Running | Succeeded | Failed | Cancelled | Interrupted
 derive instance eqRunStatus :: Eq RunStatus
 instance showRunStatus :: Show RunStatus where
@@ -138,6 +139,13 @@ submitWithKey key plan (Client config) = case Plan.compile plan of
 
 path :: Run -> String
 path (Run id) = "/v1/runs/" <> encodeSegment id
+history :: Int -> Maybe String -> Client -> Aff (Either RunError RunPage)
+history limit cursor engine = do
+  let suffix = case cursor of
+        Nothing -> ""
+        Just value -> "&before=" <> encodeSegment value
+  response <- request false "GET" ("/v1/runs?limit=" <> show limit <> suffix) "" engine
+  pure (response >>= \value -> decode value.body)
 status :: Run -> Client -> Aff (Either RunError RunState)
 status run engine = do
   response <- request false "GET" (path run) "" engine

@@ -50,6 +50,10 @@ tests = do
   legacyJson <- require (jsonParser "{\"tasks\":[]}")
   legacy <- require (decodeJson legacyJson :: Either JsonDecodeError Host.RunResult)
   liftEffect $ assert "Older reports without run outcomes must remain readable" (legacy.outcome == Nothing)
+  oldStateJson <- require (jsonParser "{\"id\":\"old\",\"status\":\"succeeded\",\"error\":null}")
+  oldState <- require (decodeJson oldStateJson :: Either JsonDecodeError Host.RunState)
+  liftEffect $ assert "Older states without creation time must remain readable" (oldState.created_at_ms == Nothing)
+
   let
     base = Plan.task "base" "/bin/echo" "/tmp"
     baseSnapshot = Plan.compile (Plan.plan [base])
@@ -185,5 +189,12 @@ tests = do
       liftEffect $ assert "Remote cancellation must persist a cancelled state" (final.status == Host.Cancelled)
       report <- Host.result run engine >>= require
       liftEffect $ assert "Cancelled outcome must be present in the durable result" (report.outcome == Just Host.RunCancelled)
+    page <- Host.history 2 Nothing engine >>= require
+    liftEffect $ assert "History returns typed persisted runs" (Array.length page.runs == 2 && Array.all (\run -> run.created_at_ms /= Nothing) page.runs)
+    case page.next_cursor of
+      Nothing -> liftEffect (throw "expected another history page")
+      Just cursor -> do
+        next <- Host.history 2 (Just cursor) engine >>= require
+        liftEffect $ assert "History cursors must advance without duplicate runs" (Array.all (\run -> not (Array.elem run.id (map _.id page.runs))) next.runs)
     liftEffect (log "Host SDK server integration tests passed.")
   liftEffect (log "Pure host plan tests passed.")

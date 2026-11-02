@@ -316,3 +316,12 @@ an older engine without a persisted outcome. New engines preserve this classific
 across restart recovery, including cancellation after some tasks have succeeded.
 A fail-fast run is `RunFailed` even if its sibling tasks were cancelled; task
 statuses remain available for the detailed breakdown.
+
+Discover persisted runs with `Host.history 50 Nothing engine`, then pass the
+returned `next_cursor` to fetch older pages. `RunPage` contains `runs` and
+`next_cursor`; each `RunState` includes optional `created_at_ms`. New servers sort
+by creation time descending, then run ID. A zero timestamp means a legacy state
+with unknown creation time; `Nothing` supports older servers' state responses.
+History requires a server supporting `GET /v1/runs`, accepts limits 1–200, and is a
+live listing rather than a frozen snapshot. Use `Host.resumeRun` with a returned ID
+to inspect its results or logs.
