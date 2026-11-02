@@ -1,6 +1,7 @@
 module Test.Main where
 
 import Prelude
+import Test.Host as Host
 
 import Effect (Effect)
 import Effect.Aff (launchAff_)
@@ -25,6 +26,7 @@ assert message condition = unless condition (throw message)
 
 main :: Effect Unit
 main = launchAff_ do
+  Host.tests
   initial <- liftEffect fixture
   let
     build = Pipeline.withWorkdir "/app" initial

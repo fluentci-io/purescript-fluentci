@@ -1,0 +1,20 @@
+name: PureScript SDK
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  sdk:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '26'
+      - name: Install pinned PureScript tools
+        run: npm install --global purescript@0.15.16 spago@1.0.5
+      - run: spago build --pedantic-packages
+      - run: spago test
+      - run: node --test test/host_transport.mjs
