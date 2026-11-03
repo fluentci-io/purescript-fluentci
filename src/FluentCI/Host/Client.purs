@@ -99,6 +99,7 @@ type TaskResult =
   , outputs :: Maybe (Object String)
   , artifacts :: Maybe (Object { path :: String, size :: Number, sha256 :: String })
   , attempts :: Maybe (Array { number :: Int, status :: TaskStatus, exit_code :: Maybe Int, duration_ms :: Number, error :: Maybe String })
+  , signal :: Maybe Int
   , condition_skipped :: Maybe Boolean
   , allowed_failure :: Maybe Boolean
   }
