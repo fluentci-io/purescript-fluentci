@@ -20,6 +20,8 @@ module FluentCI.Host.Plan
   , outputEnv
   , resource
   , task
+  , withFileOperation
+  , envFile
   , taskId
   , withId
   , after
@@ -118,6 +120,8 @@ newtype Task = Task
   , needs :: Array String
   , program :: String
   , args :: Array String
+  , file_operation :: Maybe Json
+  , env_files :: Array String
   , cwd :: String
   , env :: Environment
   , resources :: Array String
@@ -173,6 +177,8 @@ task id program cwd = Task
   , env: []
   , resources: []
   , shared_resources: []
+  , file_operation: Nothing
+  , env_files: []
   , package_install: Nothing
   , package_environment: []
   , timeout_ms: Nothing
@@ -181,6 +187,12 @@ task id program cwd = Task
   , service: Nothing
   , policy: Nothing
   }
+
+withFileOperation :: Json -> Task -> Task
+withFileOperation operation (Task value) = Task (value { file_operation = Just operation })
+
+envFile :: String -> Task -> Task
+envFile path (Task value) = Task (value { env_files = value.env_files <> [ path ] })
 
 modifyPolicy :: (Policy -> Policy) -> Task -> Task
 modifyPolicy update (Task value) = Task (value { policy = Just (update (fromMaybe defaultPolicy value.policy)) })
@@ -309,7 +321,7 @@ validate (Plan value) = do
   case Array.find (\id -> not (Object.member ("$" <> id) index)) (Array.concatMap (\(Task t) -> t.needs) value.tasks) of
     Just missing -> Left (MissingDependency missing)
     Nothing -> Right unit
-  case Array.find (\(Task t) -> (t.program == "" && isNothing t.package_install) || t.cwd == "") value.tasks of
+  case Array.find (\(Task t) -> (t.program == "" && isNothing t.package_install && isNothing t.file_operation) || t.cwd == "") value.tasks of
     Just (Task invalid) -> Left (InvalidCommand invalid.id)
     Nothing -> Right unit
   Applicative.when (not (Array.null (Array.filter (\(Task t) -> maybeInvalid t.timeout_ms || maybeInvalid t.resource_wait_timeout_ms) value.tasks))) (Left InvalidLimits)

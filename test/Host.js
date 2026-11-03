@@ -39,3 +39,11 @@ export const inspectWorkflow = text => {
     && cleanup.policy.when === "always" && cleanup.timeout_ms === 30000 && cleanup.resource_wait_timeout_ms === 30000
     && optional.policy.allow_failure && optional.policy.when === "never";
 };
+
+export const inspectFiles = text => {
+  const plan = JSON.parse(text);
+  return plan.tasks.length === 16 && plan.tasks.every(task => task.program === "" && task.file_operation?.op)
+    && plan.tasks[2].file_operation.text === "$(touch injected)"
+    && plan.tasks[2].env_files[0] === "settings.env"
+    && plan.tasks[3].file_operation.bytes[1] === 255;
+};

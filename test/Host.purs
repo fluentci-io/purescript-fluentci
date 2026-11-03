@@ -14,6 +14,7 @@ import Effect.Exception (throw, error)
 import FluentCI.Host.Client as Host
 import FluentCI.Host.Local as Local
 import FluentCI.Host.Plan as Plan
+import FluentCI.Host.Files as Files
 
 foreign import configuration :: Effect { baseUrl :: String, token :: String, cwd :: String, binary :: String, packageManager :: String, packageExecutable :: String }
 foreign import localChildStarted :: Effect Boolean
@@ -21,6 +22,7 @@ foreign import localChildAlive :: Effect Boolean
 foreign import inspectPackages :: String -> Boolean
 foreign import inspectWorkspace :: String -> Effect Boolean
 foreign import inspectWorkflow :: String -> Boolean
+foreign import inspectFiles :: String -> Boolean
 foreign import inspectPlan :: String -> Boolean
 
 assert :: String -> Boolean -> Effect Unit
@@ -49,6 +51,27 @@ waitForChild attempts = do
 
 tests :: Aff Unit
 tests = do
+  let
+    nativeTasks =
+      [ Files.readText "read" "input" 1024 "."
+      , Files.readBytes "bytes" "input" 1024 "."
+      , Files.writeText "write" "output" "$(touch injected)" false "." # Plan.envFile "settings.env"
+      , Files.writeBytes "binary" "binary" [ 0, 255 ] false "."
+      , Files.copyFile "copy" "input" "copy" false "."
+      , Files.copyTree "tree" "src" "dest" false "."
+      , Files.move "move" "copy" "moved" false "."
+      , Files.mkdir "mkdir" "dir" true "."
+      , Files.remove "remove" "dir" true true "."
+      , Files.stat "stat" "input" "."
+      , Files.exists "exists" "input" "."
+      , Files.list "list" "." "."
+      , Files.glob "glob" "**/*.txt" "."
+      , Files.hash "hash" "input" "."
+      , Files.chmod "chmod" "input" 448 "."
+      , Files.symlink "symlink" "input" "link" "."
+      ]
+  filePlan <- require (Plan.compile (Plan.plan nativeTasks))
+  liftEffect $ assert "File operations must compile as pure native tasks" (inspectFiles filePlan)
   queuedJson <- require (jsonParser "{\"id\":\"queued-run\",\"status\":\"queued\",\"error\":null}")
   queued <- require (decodeJson queuedJson :: Either JsonDecodeError Host.RunState)
   liftEffect $ assert "Queued runs must decode as nonterminal admission state" (queued.status == Host.Queued)

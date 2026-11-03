@@ -5,7 +5,7 @@ export const environmentJson = entries => Object.fromEntries(entries.map(({ key,
 export const omitUnusedFields = value => {
   const result = { ...value };
   for (const key of Object.keys(result)) if (result[key] === null) delete result[key];
-  for (const key of ["shared_resources", "package_environment"]) if (result[key]?.length === 0) delete result[key];
+  for (const key of ["shared_resources", "package_environment", "env_files"]) if (result[key]?.length === 0) delete result[key];
   if (result.cache?.relocatable === false) {
     result.cache = { ...result.cache };
     delete result.cache.relocatable;
