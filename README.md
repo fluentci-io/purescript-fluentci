@@ -330,5 +330,7 @@ to inspect its results or logs.
 When the run server enables `--max-queued`, `FluentCI.Host.Client.RunStatus`
 includes `Queued`. Treat both `Queued` and `Running` as nonterminal when polling.
 A run cancelled before execution has a state record but no result report. Queued
-runs interrupted by a server restart are not automatically resumed; submit a new
-run with a new idempotency key when retrying intentionally.
+runs become interrupted after a restart by default. Servers started with
+`--resume-queued` can resume fully admitted, never-started queued runs using the
+same IDs and idempotency keys; keep polling the existing handle. Running or
+interrupted runs are never automatically re-executed.
