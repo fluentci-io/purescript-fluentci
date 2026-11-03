@@ -1,6 +1,6 @@
 module FluentCI.Host.Plan
   ( Task, Plan, Workspace, CachePolicy, Probe, Service, PlanError(..), Provider, ProviderKind(..)
-  , task, taskId, withArgs, needs, withEnv, withResources, withTimeout
+  , task, taskId, withId, after, withArgs, needs, withEnv, withResources, withTimeout
   , withResourceWaitTimeout, withCache, withRelocatableCache, withToolchainFiles, asService, asServiceWithHealth, service
   , plan, withJobs, withMaxServices, withFailFast, withCacheDirectory
   , withWorkspace, withResourceDirectory, withSharedResources, provider, withProviderExecutable, install, withPackageEnvironment, validate, compile
@@ -78,6 +78,10 @@ task id program cwd = Task
   }
 taskId :: Task -> String
 taskId (Task value) = value.id
+withId :: String -> Task -> Task
+withId id (Task value) = Task (value { id = id })
+after :: Array Task -> Task -> Task
+after parents (Task value) = Task (value { needs = Array.nub (value.needs <> map taskId parents) })
 withArgs :: Array String -> Task -> Task
 withArgs args (Task value) = Task (value { args = args })
 needs :: Array Task -> Task -> Task

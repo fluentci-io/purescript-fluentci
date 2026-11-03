@@ -1,6 +1,6 @@
 {
   "repository": "https://github.com/fluentci-io/fluentci-engine",
-  "revision": "6f16132bd76ebe8ff290445ffbecd065dac16f92",
+  "revision": "4f42ca7890a015acc2e31ecf454a421c6832790a",
   "path": "schema/host.json",
-  "sha256": "0edaf8174f2cc94072a820ab361641079c66ccdd6629d014842db2f1484be781"
+  "sha256": "2f478467792b8e5105e58640cda43365c09072bb4c8c82723b30a04e4881f969"
 }

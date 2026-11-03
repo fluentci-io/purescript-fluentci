@@ -60,6 +60,11 @@ const signatures = Object.freeze({
     "output": true,
     "json": false
   },
+  "execute_plan": {
+    "input": true,
+    "output": true,
+    "json": false
+  },
   "file": {
     "input": true,
     "output": true,
@@ -297,6 +302,7 @@ export const devenv = () => invokeRaw("devenv", "");
 export const directory = value => () => invokeRaw("directory", value);
 export const entries = value => () => invokeRaw("entries", value);
 export const envhub = () => invokeRaw("envhub", "");
+export const execute_plan = value => () => invokeRaw("execute_plan", value);
 export const file = value => () => invokeRaw("file", value);
 export const flox = () => invokeRaw("flox", "");
 export const get_arch = () => invokeRaw("get_arch", "");

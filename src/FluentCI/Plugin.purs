@@ -7,7 +7,7 @@ module FluentCI.Plugin
   , asService, withService, waitOn, file, copyFile, sha256, md5
   , secret, withSecret, secretManager, getSecrets
   , callModule, getEnv, hasEnv, getOS, getArch, input, output
-  , validate, stdout, stderr
+  , validate, stdout, stderr, runPlan
   ) where
 
 import Prelude
@@ -16,6 +16,9 @@ import Effect (Effect)
 import FluentCI.Plugin.Error (PluginError, fromWireError)
 import FluentCI.Plugin.Error (PluginError(..), errorMessage) as Error
 import FluentCI.Plugin.Internal.Imports as Imports
+import FluentCI.Plugin.Plan as Execution
+import FluentCI.Host.Plan as Host
+import FluentCI.Host.Client (RunResult)
 
 foreign import data Pipeline :: Type
 foreign import data Cache :: Type
@@ -141,3 +144,6 @@ input = perform "input" []
 
 output :: String -> Effect (Result Unit)
 output value = map (map (const unit)) (perform "output" [value])
+
+runPlan :: String -> Host.Plan -> Effect (Result RunResult)
+runPlan = Execution.run

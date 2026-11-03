@@ -151,7 +151,7 @@ node --test test/host_transport.mjs
 
 `schema/host.json` is a pinned snapshot of the engine's canonical schema;
 `schema/source.json` records its revision and SHA-256. The generator produces all
-52 lazy host bindings and Wasm import declarations. To verify a sibling checkout:
+53 lazy host bindings and Wasm import declarations. To verify a sibling checkout:
 
 ```sh
 python3 scripts/generate-pdk.py --check --engine ../fluentci-engine
@@ -161,3 +161,42 @@ When upgrading the ABI, copy the canonical schema, update the provenance revisio
 and digest, regenerate, and review the diff. No compiler or engine host runtime is
 installed by the generator. CI compiles the PureScript API, checks generated files,
 and exercises guest transports; engine CI compiles and invokes the real Wasm guest.
+
+## Parallel matrices (unreleased engine API)
+
+`FluentCI.Matrix` expands named typed cases into ordinary host tasks. `product`
+creates Cartesian products, `exclude` filters by a predicate, and `include`
+appends explicitly named cases. IDs are stable across filtering/reordering.
+
+```purescript
+import Data.Tuple (Tuple(..))
+import FluentCI.Matrix as M
+import FluentCI.Host.Plan as H
+
+jobs = do
+  cases <- M.product (M.axis "node" ["22", "24"]) (M.axis "suite" ["unit", "integration"])
+  M.matrix "test" cases \(Tuple node suite) ->
+    H.task "assigned-by-matrix" "/usr/bin/printf" "."
+      # H.withArgs ["%s %s", node, suite]
+
+-- After handling the Either, run the complete plan in one guest effect:
+-- P.runPlan "fresh-run-directory" (M.parallel 4 tasks)
+```
+
+Attach prerequisites in each task builder with `H.needs [prepare]`. Use
+`M.after tasks finalTask` to join every case while preserving the final task's
+existing dependencies. Each case gets normal per-task caching, services, logs,
+timeouts and cancellation. Case builders must declare disjoint output paths or
+resource dependencies; a matrix does not automatically isolate working directories.
+Products and expansions are bounded to 4096 cases and reject duplicate keys.
+`withJobs` limits the whole plan; there is no separate per-matrix quota yet.
+
+`runPlan` calls the new `execute_plan` host import once for the complete plan,
+without concurrent access to the legacy graph. It returns a typed terminal report;
+inspect its outcome to decide whether the plugin should fail. The caller owns the
+fresh run directory, journal, result and log files. Legacy `Pipeline` values remain
+serial and are not accepted as native matrix tasks. All cases run on the current
+host; remote/cross-OS worker placement is not provided.
+
+This API requires a matrix-enabled engine source build containing `execute_plan`;
+the already-published engine 0.6.0 does not expose that import.

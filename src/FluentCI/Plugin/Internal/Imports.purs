@@ -18,6 +18,7 @@ foreign import devenv :: Effect String
 foreign import directory :: String -> Effect String
 foreign import entries :: String -> Effect String
 foreign import envhub :: Effect String
+foreign import execute_plan :: String -> Effect String
 foreign import file :: String -> Effect String
 foreign import flox :: Effect String
 foreign import get_arch :: Effect String

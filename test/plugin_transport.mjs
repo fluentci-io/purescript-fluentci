@@ -45,7 +45,7 @@ function guest(overrides = {}) {
 
 test("all generated signatures match the canonical schema, including void results", () => {
   const schema = JSON.parse(readFileSync(new URL("../schema/host.json", import.meta.url)));
-  assert.equal(Object.keys(signatures).length, 52);
+  assert.equal(Object.keys(signatures).length, 53);
   for (const [name, fn] of Object.entries(schema.imports))
     assert.deepEqual(signatures[name], { input: "input" in fn, output: "output" in fn, json: fn.input?.contentType === "application/json" });
 });
