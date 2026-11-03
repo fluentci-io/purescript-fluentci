@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import * as P from "../src/FluentCI/Plugin.js";
-import { invoke, signatures } from "../src/FluentCI/Plugin/Internal/Imports.js";
+import { invoke, signatureJson } from "../src/FluentCI/Plugin/Internal/Imports.js";
 import { readFileSync } from "node:fs";
 
+const signatures = JSON.parse(signatureJson);
 const makeError = kind => operation => message => ({ kind, operation, message });
 const left = error => ({ error });
 const right = value => ({ value });

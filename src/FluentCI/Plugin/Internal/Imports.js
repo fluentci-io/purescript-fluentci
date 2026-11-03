@@ -1,5 +1,5 @@
 // Generated from schema/host.json. No host runtime is instantiated.
-export const signatures = Object.freeze({
+const signatures = Object.freeze({
   "add_secretmanager": {
     "input": true,
     "output": true,
@@ -261,6 +261,7 @@ export const signatures = Object.freeze({
     "json": false
   }
 });
+export const signatureJson = JSON.stringify(signatures);
 
 const failure = (kind, operation, message) => Object.assign(new Error(message), { kind, operation });
 function invokeRaw(name, input) {

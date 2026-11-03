@@ -5,6 +5,7 @@ import Prelude (Unit)
 import Effect (Effect)
 
 foreign import invoke :: String -> String -> Effect String
+foreign import signatureJson :: String
 foreign import add_secretmanager :: String -> Effect String
 foreign import as_service :: String -> Effect String
 foreign import branch :: String -> Effect Unit

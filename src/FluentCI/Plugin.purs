@@ -2,7 +2,7 @@
 -- | Use FluentCI.Host.* for applications submitting execution plans outside Wasm.
 module FluentCI.Plugin
   ( Pipeline, Cache, File, Secret, Service, SecretManager, Provider(..), SecretProvider(..), Result
-  , PluginError(..), errorMessage
+  , module Error
   , pipeline, exec, shell, withWorkdir, withEnv, cache, withCache, using, withPackages
   , asService, withService, waitOn, file, copyFile, sha256, md5
   , secret, withSecret, secretManager, getSecrets
@@ -13,7 +13,8 @@ module FluentCI.Plugin
 import Prelude
 import Data.Either (Either(..))
 import Effect (Effect)
-import FluentCI.Plugin.Error (PluginError(..), errorMessage, fromWireError)
+import FluentCI.Plugin.Error (PluginError, fromWireError)
+import FluentCI.Plugin.Error (PluginError(..), errorMessage) as Error
 import FluentCI.Plugin.Internal.Imports as Imports
 
 foreign import data Pipeline :: Type
