@@ -69,6 +69,8 @@ tests = do
   liftEffect do
     assert "Pure branches must not mutate their source task" (baseSnapshot == Plan.compile (Plan.plan [base]))
     assert "Plan serialization preserves argv, environment keys, dependency edges and safe defaults" (inspectPlan compiled)
+    assert "Environment inheritance is an explicit immutable plan option"
+      (Plan.compile (Plan.plan [base] # Plan.withInheritedEnv true # Plan.withInheritedEnv false) == baseSnapshot)
     assert "Duplicate task IDs must fail locally" (Plan.compile (Plan.plan [base, base]) == Left Plan.DuplicateTaskIds)
     assert "Missing dependencies must fail locally" (Plan.compile (Plan.plan [left]) == Left (Plan.MissingDependency "base"))
     assert "Invalid limits must fail locally" (Plan.compile (diamond # Plan.withJobs 0) == Left Plan.InvalidLimits)

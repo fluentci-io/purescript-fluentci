@@ -2,7 +2,7 @@ module FluentCI.Host.Plan
   ( Task, Plan, Workspace, CachePolicy, Probe, Service, PlanError(..), Provider, ProviderKind(..)
   , task, taskId, withId, after, withArgs, needs, withEnv, withResources, withTimeout
   , withResourceWaitTimeout, withCache, withRelocatableCache, withToolchainFiles, asService, asServiceWithHealth, service
-  , plan, withJobs, withMaxServices, withFailFast, withCacheDirectory
+  , plan, withJobs, withMaxServices, withFailFast, withInheritedEnv, withCacheDirectory
   , withWorkspace, withResourceDirectory, withSharedResources, provider, withProviderExecutable, install, withPackageEnvironment, validate, compile
   ) where
 
@@ -125,6 +125,10 @@ withMaxServices :: Int -> Plan -> Plan
 withMaxServices limit (Plan value) = Plan (value { max_services = limit })
 withFailFast :: Boolean -> Plan -> Plan
 withFailFast enabled (Plan value) = Plan (value { fail_fast = enabled })
+-- | Opt into the host environment for uncached native tool orchestration.
+-- | Action-cached tasks still require explicit environments.
+withInheritedEnv :: Boolean -> Plan -> Plan
+withInheritedEnv enabled (Plan value) = Plan (value { inherit_env = enabled })
 withCacheDirectory :: String -> Plan -> Plan
 withCacheDirectory directory (Plan value) = Plan (value { cache_dir = Just directory })
 withWorkspace :: Workspace -> Plan -> Plan
