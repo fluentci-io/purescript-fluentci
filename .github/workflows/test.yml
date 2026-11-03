@@ -13,6 +13,10 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '26'
+      - name: Verify generated guest ABI and transport contracts
+        run: |
+          python3 scripts/generate-pdk.py --check
+          node --test test/plugin_transport.mjs
       - name: Install pinned PureScript tools
         run: npm install --global purescript@0.15.16 spago@1.0.5
       - run: spago build --pedantic-packages

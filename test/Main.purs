@@ -2,6 +2,7 @@ module Test.Main where
 
 import Prelude
 import Test.Host as Host
+import Test.Plugin as Plugin
 
 import Effect (Effect)
 import Effect.Aff (launchAff_)
@@ -26,6 +27,7 @@ assert message condition = unless condition (throw message)
 
 main :: Effect Unit
 main = launchAff_ do
+  liftEffect Plugin.tests
   Host.tests
   initial <- liftEffect fixture
   let
