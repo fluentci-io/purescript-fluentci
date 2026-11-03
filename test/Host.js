@@ -30,3 +30,12 @@ export const inspectPackages = text => {
 export const inspectWorkspace = runDirectory => () =>
   readFileSync(`${runDirectory}/workspace/workspace-artifact`, "utf8") === "isolated" &&
   !existsSync(`${process.env.FLUENTCI_TEST_CWD}/workspace-artifact`);
+
+export const inspectWorkflow = text => {
+  const [producer, consumer, cleanup, optional] = JSON.parse(text).tasks;
+  return producer.policy.retry.max_attempts === 3 && producer.policy.outputs.version === "version.txt"
+    && producer.policy.artifacts.report === "report.txt" && producer.resources.includes("checkout")
+    && consumer.needs.includes("produce") && consumer.policy.bindings.VERSION.task === "produce"
+    && cleanup.policy.when === "always" && cleanup.timeout_ms === 30000 && cleanup.resource_wait_timeout_ms === 30000
+    && optional.policy.allow_failure && optional.policy.when === "never";
+};

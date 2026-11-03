@@ -20,10 +20,12 @@ foreign import localChildStarted :: Effect Boolean
 foreign import localChildAlive :: Effect Boolean
 foreign import inspectPackages :: String -> Boolean
 foreign import inspectWorkspace :: String -> Effect Boolean
+foreign import inspectWorkflow :: String -> Boolean
 foreign import inspectPlan :: String -> Boolean
 
 assert :: String -> Boolean -> Effect Unit
 assert label condition = unless condition (throw label)
+
 require :: forall e a. Show e => Either e a -> Aff a
 require (Left error) = liftEffect (throw (show error))
 require (Right value) = pure value
@@ -59,36 +61,44 @@ tests = do
 
   let
     base = Plan.task "base" "/bin/echo" "/tmp"
-    baseSnapshot = Plan.compile (Plan.plan [base])
-    prepare = base # Plan.withArgs ["literal; $VALUE", "two words"] # Plan.withEnv "__proto__" "preserved"
-    left = Plan.task "left" "/bin/true" "/tmp" # Plan.needs [prepare]
-    right = Plan.task "right" "/bin/true" "/tmp" # Plan.needs [prepare]
-    join = Plan.task "join" "/bin/true" "/tmp" # Plan.needs [left, right]
-    diamond = Plan.plan [prepare, left, right, join] # Plan.withJobs 2
+    baseSnapshot = Plan.compile (Plan.plan [ base ])
+    prepare = base # Plan.withArgs [ "literal; $VALUE", "two words" ] # Plan.withEnv "__proto__" "preserved"
+    left = Plan.task "left" "/bin/true" "/tmp" # Plan.needs [ prepare ]
+    right = Plan.task "right" "/bin/true" "/tmp" # Plan.needs [ prepare ]
+    join = Plan.task "join" "/bin/true" "/tmp" # Plan.needs [ left, right ]
+    diamond = Plan.plan [ prepare, left, right, join ] # Plan.withJobs 2
   compiled <- require (Plan.compile diamond)
   liftEffect do
-    assert "Pure branches must not mutate their source task" (baseSnapshot == Plan.compile (Plan.plan [base]))
+    assert "Pure branches must not mutate their source task" (baseSnapshot == Plan.compile (Plan.plan [ base ]))
     assert "Plan serialization preserves argv, environment keys, dependency edges and safe defaults" (inspectPlan compiled)
     assert "Environment inheritance is an explicit immutable plan option"
-      (Plan.compile (Plan.plan [base] # Plan.withInheritedEnv true # Plan.withInheritedEnv false) == baseSnapshot)
-    assert "Duplicate task IDs must fail locally" (Plan.compile (Plan.plan [base, base]) == Left Plan.DuplicateTaskIds)
-    assert "Missing dependencies must fail locally" (Plan.compile (Plan.plan [left]) == Left (Plan.MissingDependency "base"))
+      (Plan.compile (Plan.plan [ base ] # Plan.withInheritedEnv true # Plan.withInheritedEnv false) == baseSnapshot)
+    assert "Duplicate task IDs must fail locally" (Plan.compile (Plan.plan [ base, base ]) == Left Plan.DuplicateTaskIds)
+    assert "Missing dependencies must fail locally" (Plan.compile (Plan.plan [ left ]) == Left (Plan.MissingDependency "base"))
     assert "Invalid limits must fail locally" (Plan.compile (diamond # Plan.withJobs 0) == Left Plan.InvalidLimits)
   let selected = Plan.provider Plan.MacPortsRust # Plan.withProviderExecutable "/tools/port"
-  packages <- require (Plan.compile (Plan.plan [Plan.install "packages" "/tmp" selected ["jq"]]))
+  packages <- require (Plan.compile (Plan.plan [ Plan.install "packages" "/tmp" selected [ "jq" ] ]))
   liftEffect $ assert "Package providers remain pure serializable data" (inspectPackages packages)
+  let
+    producer = Plan.task "produce" "/bin/true" "/tmp" # Plan.retry 3 10 # Plan.output "version" "version.txt" # Plan.artifact "report" "report.txt" # Plan.resource "checkout"
+    consumer = Plan.task "consume" "/bin/true" "/tmp" # Plan.outputEnv "VERSION" producer "version"
+    cleanup = Plan.task "cleanup" "/bin/true" "/tmp" # Plan.after [ consumer ] # Plan.always
+    optional = Plan.task "optional" "/bin/false" "/tmp" # Plan.allowFailure true # Plan.when Plan.Never
+  workflow <- require (Plan.compile (Plan.plan [ producer, consumer, cleanup, optional ]))
+  liftEffect $ assert "Workflow functions preserve named outputs, dependencies and bounded cleanup" (inspectWorkflow workflow)
   config <- liftEffect configuration
   when (config.binary /= "") do
-    let localPlan = Plan.plan [Plan.task "local" "/bin/sh" config.cwd # Plan.withArgs ["-c", "printf local"]]
+    let localPlan = Plan.plan [ Plan.task "local" "/bin/sh" config.cwd # Plan.withArgs [ "-c", "printf local" ] ]
     local <- Local.execute localPlan { binary: config.binary, runRoot: config.cwd <> "/local-runs", progress: Local.Plain } >>= require
     liftEffect $ assert "Local execution must expose its durable outcome" (local.result.outcome == Just Host.RunSucceeded)
-    liftEffect $ assert "Direct execution must use the same typed result contract" (map (\t -> t.status) local.result.tasks == [Host.TaskSucceeded])
-    let isolated = Plan.plan [Plan.task "isolated" "/bin/sh" "." # Plan.withArgs ["-c", "printf isolated > workspace-artifact"]]
-          # Plan.withWorkspace { source: config.cwd, inputs: [] }
+    liftEffect $ assert "Direct execution must use the same typed result contract" (map (\t -> t.status) local.result.tasks == [ Host.TaskSucceeded ])
+    let
+      isolated = Plan.plan [ Plan.task "isolated" "/bin/sh" "." # Plan.withArgs [ "-c", "printf isolated > workspace-artifact" ] ]
+        # Plan.withWorkspace { source: config.cwd, inputs: [] }
     copied <- Local.execute isolated { binary: config.binary, runRoot: config.cwd <> "/local-runs", progress: Local.Plain } >>= require
     separated <- liftEffect (inspectWorkspace copied.runDirectory)
-    liftEffect $ assert "Workspace artifacts must stay under their run directory" (separated && map (\t -> t.status) copied.result.tasks == [Host.TaskSucceeded])
-    let long = Plan.plan [Plan.task "cancel-local" "/bin/sh" config.cwd # Plan.withArgs ["-c", "echo $$ > local-child.pid; while :; do /bin/sleep 0.02; done"]]
+    liftEffect $ assert "Workspace artifacts must stay under their run directory" (separated && map (\t -> t.status) copied.result.tasks == [ Host.TaskSucceeded ])
+    let long = Plan.plan [ Plan.task "cancel-local" "/bin/sh" config.cwd # Plan.withArgs [ "-c", "echo $$ > local-child.pid; while :; do /bin/sleep 0.02; done" ] ]
     fiber <- forkAff (Local.execute long { binary: config.binary, runRoot: config.cwd <> "/local-runs", progress: Local.Plain })
     waitForChild 500
     killFiber (error "cancel local execution") fiber
@@ -98,12 +108,12 @@ tests = do
   when (config.baseUrl /= "") do
     let
       engine = Host.client { baseUrl: config.baseUrl, token: config.token, timeoutMs: 3000 }
-      command id script = Plan.task id "/bin/sh" config.cwd # Plan.withArgs ["-c", script] # Plan.withTimeout 3000
+      command id script = Plan.task id "/bin/sh" config.cwd # Plan.withArgs [ "-c", script ] # Plan.withTimeout 3000
       root = command "prepare" "printf prepare"
-      a = command "left" "printf '%s' \"$VALUE\"" # Plan.withEnv "VALUE" "literal; $VALUE" # Plan.needs [root]
-      b = command "right" "printf right" # Plan.needs [root]
-      c = command "join" "printf joined" # Plan.needs [a, b]
-    withRun engine (Plan.plan [root, a, b, c] # Plan.withJobs 2) \run -> do
+      a = command "left" "printf '%s' \"$VALUE\"" # Plan.withEnv "VALUE" "literal; $VALUE" # Plan.needs [ root ]
+      b = command "right" "printf right" # Plan.needs [ root ]
+      c = command "join" "printf joined" # Plan.needs [ a, b ]
+    withRun engine (Plan.plan [ root, a, b, c ] # Plan.withJobs 2) \run -> do
       final <- awaitRun engine run 500
       report <- Host.result run engine >>= require
       page <- Host.events "0" run engine >>= require
@@ -114,19 +124,19 @@ tests = do
         assert "Remote diamond must succeed" (final.status == Host.Succeeded && Array.length report.tasks == 4)
         assert "Typed task statuses must decode" (Array.null (Array.filter (\t -> t.status /= Host.TaskSucceeded) report.tasks))
         assert "Events must resume without replay" (not (Array.null page.events) && Array.null tail.events)
-        assert "Raw log bytes must preserve literal environment data" (output.bytes == [108,105,116,101,114,97,108,59,32,36,86,65,76,85,69])
+        assert "Raw log bytes must preserve literal environment data" (output.bytes == [ 108, 105, 116, 101, 114, 97, 108, 59, 32, 36, 86, 65, 76, 85, 69 ])
         assert "Saved run IDs can be resumed" (resumed.status == Host.Succeeded)
       let unauthorized = Host.client { baseUrl: config.baseUrl, token: "incorrect", timeoutMs: 1000 }
       rejected <- Host.status run unauthorized
       liftEffect $ assert "HTTP errors must be typed" case rejected of
         Left (Host.HttpError 401 _) -> true
         _ -> false
-    let retryPlan = Plan.plan [command "idempotent" "printf once >> idempotent-count"]
+    let retryPlan = Plan.plan [ command "idempotent" "printf once >> idempotent-count" ]
     original <- Host.submitWithKey "sdk-retry" retryPlan engine >>= require
     void (awaitRun engine original 500)
     replayed <- Host.submitWithKey "sdk-retry" retryPlan engine >>= require
     liftEffect $ assert "Idempotent submissions must return the same run" (Host.runId original == Host.runId replayed)
-    conflict <- Host.submitWithKey "sdk-retry" (Plan.plan [command "different" "exit 0"]) engine
+    conflict <- Host.submitWithKey "sdk-retry" (Plan.plan [ command "different" "exit 0" ]) engine
     liftEffect $ assert "Reusing a key with another plan must report a conflict" case conflict of
       Left (Host.HttpError 409 _) -> true
       _ -> false
@@ -139,24 +149,24 @@ tests = do
           "netbsd" -> Plan.NetBSD
           _ -> Plan.OpenBSD
         runtimeProvider = Plan.provider kind # Plan.withProviderExecutable config.packageExecutable
-        installation = Plan.install "packages" config.cwd runtimeProvider ["fixture@1"]
-        consumer = command "package-consumer" "printf package-consumer" # Plan.needs [installation] # Plan.withPackageEnvironment [runtimeProvider]
-      withRun engine (Plan.plan [installation, consumer] # Plan.withResourceDirectory (config.cwd <> "/package-locks")) \run -> do
+        installation = Plan.install "packages" config.cwd runtimeProvider [ "fixture@1" ]
+        consumer = command "package-consumer" "printf package-consumer" # Plan.needs [ installation ] # Plan.withPackageEnvironment [ runtimeProvider ]
+      withRun engine (Plan.plan [ installation, consumer ] # Plan.withResourceDirectory (config.cwd <> "/package-locks")) \run -> do
         final <- awaitRun engine run 500
         liftEffect $ assert "SDK package installation/environment tasks must execute" (final.status == Host.Succeeded)
     let
-      cached = command "cached" "printf artifact > artifact" # Plan.withResources ["sdk-checkout"] # Plan.withCache { inputs: [], outputs: ["artifact"], toolchain: "purescript-e2e" } # Plan.withToolchainFiles ["/bin/sh"]
-      cachedPlan = Plan.plan [cached] # Plan.withCacheDirectory (config.cwd <> "/cache") # Plan.withResourceDirectory (config.cwd <> "/locks")
+      cached = command "cached" "printf artifact > artifact" # Plan.withResources [ "sdk-checkout" ] # Plan.withCache { inputs: [], outputs: [ "artifact" ], toolchain: "purescript-e2e" } # Plan.withToolchainFiles [ "/bin/sh" ]
+      cachedPlan = Plan.plan [ cached ] # Plan.withCacheDirectory (config.cwd <> "/cache") # Plan.withResourceDirectory (config.cwd <> "/locks")
     withRun engine cachedPlan \run -> void (awaitRun engine run 500)
     withRun engine cachedPlan \run -> do
       void (awaitRun engine run 500)
       report <- Host.result run engine >>= require
-      liftEffect $ assert "PureScript plans must use the real action cache" (map (\t -> t.cache.outcome) report.tasks == ["hit"])
+      liftEffect $ assert "PureScript plans must use the real action cache" (map (\t -> t.cache.outcome) report.tasks == [ "hit" ])
     let
       relocated = Plan.task "relocated" "/bin/sh" "."
-        # Plan.withArgs ["-c", "printf portable > artifact"]
-        # Plan.withRelocatableCache { inputs: [], outputs: ["artifact"], toolchain: "sdk-relocatable-v1" }
-      relocatedPlan = Plan.plan [relocated]
+        # Plan.withArgs [ "-c", "printf portable > artifact" ]
+        # Plan.withRelocatableCache { inputs: [], outputs: [ "artifact" ], toolchain: "sdk-relocatable-v1" }
+      relocatedPlan = Plan.plan [ relocated ]
         # Plan.withWorkspace { source: config.cwd, inputs: [] }
         # Plan.withCacheDirectory (config.cwd <> "/cache")
     withRun engine relocatedPlan \run -> do
@@ -165,19 +175,19 @@ tests = do
     withRun engine relocatedPlan \run -> do
       void (awaitRun engine run 500)
       report <- Host.result run engine >>= require
-      liftEffect $ assert "Explicit relocatable cache restores in a fresh server workspace" (map (\t -> t.cache.outcome) report.tasks == ["hit"])
+      liftEffect $ assert "Explicit relocatable cache restores in a fresh server workspace" (map (\t -> t.cache.outcome) report.tasks == [ "hit" ])
     let
-      db = command "db" "while :; do /bin/sleep 0.02; done" # Plan.asService (Plan.service { program: "/bin/sh", args: ["-c", "exit 0"], interval_ms: 10, timeout_ms: 100 })
-      consumer = command "consumer" "printf consumer" # Plan.needs [db]
-    withRun engine (Plan.plan [db, consumer]) \run -> do
+      db = command "db" "while :; do /bin/sleep 0.02; done" # Plan.asService (Plan.service { program: "/bin/sh", args: [ "-c", "exit 0" ], interval_ms: 10, timeout_ms: 100 })
+      consumer = command "consumer" "printf consumer" # Plan.needs [ db ]
+    withRun engine (Plan.plan [ db, consumer ]) \run -> do
       final <- awaitRun engine run 500
       liftEffect $ assert "Service plans must gate consumers and shut down" (final.status == Host.Succeeded)
     let
-      startup = { program: "/bin/sh", args: ["-c", "test ! -f sdk-ready && touch sdk-ready"], interval_ms: 10, timeout_ms: 100 }
-      health = { program: "/bin/sh", args: ["-c", "test -f sdk-ready || exit 1; printf '\\377'; printf health-error >&2; touch sdk-health"], interval_ms: 10, timeout_ms: 100 }
+      startup = { program: "/bin/sh", args: [ "-c", "test ! -f sdk-ready && touch sdk-ready" ], interval_ms: 10, timeout_ms: 100 }
+      health = { program: "/bin/sh", args: [ "-c", "test -f sdk-ready || exit 1; printf '\\377'; printf health-error >&2; touch sdk-health" ], interval_ms: 10, timeout_ms: 100 }
       separate = command "separate-db" "while :; do /bin/sleep 0.02; done" # Plan.asServiceWithHealth health (Plan.service startup)
-      checked = command "health-consumer" "while test ! -f sdk-health; do /bin/sleep 0.01; done; /bin/sleep 0.1" # Plan.needs [separate]
-    withRun engine (Plan.plan [separate, checked]) \run -> do
+      checked = command "health-consumer" "while test ! -f sdk-health; do /bin/sleep 0.01; done; /bin/sleep 0.1" # Plan.needs [ separate ]
+    withRun engine (Plan.plan [ separate, checked ]) \run -> do
       final <- awaitRun engine run 500
       liftEffect $ assert "Separate recurring health checks must replace one-time readiness checks" (final.status == Host.Succeeded)
       stdout <- Host.logs Host.ProbeStdout 0 "0" run engine >>= require
@@ -185,10 +195,10 @@ tests = do
       rest <- Host.logs Host.ProbeStdout 0 stdout.nextCursor run engine >>= require
       liftEffect do
         assert "Probe API must preserve binary stdout" (Array.elem 255 stdout.bytes)
-        assert "Probe API must retain diagnostic stderr" (Array.any (\start -> Array.slice start (start + 12) stderr.bytes == [104,101,97,108,116,104,45,101,114,114,111,114]) (Array.range 0 (Array.length stderr.bytes)))
+        assert "Probe API must retain diagnostic stderr" (Array.any (\start -> Array.slice start (start + 12) stderr.bytes == [ 104, 101, 97, 108, 116, 104, 45, 101, 114, 114, 111, 114 ]) (Array.range 0 (Array.length stderr.bytes)))
         assert "Probe byte cursors must resume without replay" (Array.null rest.bytes)
 
-    withRun engine (Plan.plan [command "cancel" "/bin/sleep 20"]) \run -> do
+    withRun engine (Plan.plan [ command "cancel" "/bin/sleep 20" ]) \run -> do
       void (Host.cancel run engine >>= require)
       final <- awaitRun engine run 500
       liftEffect $ assert "Remote cancellation must persist a cancelled state" (final.status == Host.Cancelled)

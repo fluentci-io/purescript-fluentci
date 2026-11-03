@@ -1,6 +1,29 @@
 module FluentCI.Host.Client
-  ( Client, Config, Run, RunStatus(..), RunState, RunPage, RunError(..), TaskResult, RunResult, RunOutcome(..), EventPage, LogStream(..), LogPage, TaskStatus(..)
-  , client, runId, resumeRun, submit, submitWithKey, status, result, cancel, events, logs, history
+  ( Client
+  , Config
+  , Run
+  , RunStatus(..)
+  , RunState
+  , RunPage
+  , RunError(..)
+  , TaskResult
+  , RunResult
+  , RunOutcome(..)
+  , EventPage
+  , LogStream(..)
+  , LogPage
+  , TaskStatus(..)
+  , client
+  , runId
+  , resumeRun
+  , submit
+  , submitWithKey
+  , status
+  , result
+  , cancel
+  , events
+  , logs
+  , history
   ) where
 
 import Prelude
@@ -9,6 +32,7 @@ import Data.Argonaut.Decode (class DecodeJson, decodeJson, JsonDecodeError(..))
 import Data.Argonaut.Parser (jsonParser)
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
+import Foreign.Object (Object)
 import Effect.Aff (Aff, attempt)
 import Effect.Aff.Compat (EffectFnAff, fromEffectFnAff)
 import Effect.Exception (message)
@@ -20,6 +44,7 @@ newtype Run = Run String
 type RunState = { id :: String, status :: RunStatus, error :: Maybe String, created_at_ms :: Maybe Number }
 type RunPage = { runs :: Array RunState, next_cursor :: Maybe String }
 data RunStatus = Queued | Running | Succeeded | Failed | Cancelled | Interrupted
+
 derive instance eqRunStatus :: Eq RunStatus
 instance showRunStatus :: Show RunStatus where
   show Queued = "queued"
@@ -28,6 +53,7 @@ instance showRunStatus :: Show RunStatus where
   show Failed = "failed"
   show Cancelled = "cancelled"
   show Interrupted = "interrupted"
+
 instance decodeRunStatus :: DecodeJson RunStatus where
   decodeJson json = do
     value <- decodeJson json
@@ -41,6 +67,7 @@ instance decodeRunStatus :: DecodeJson RunStatus where
       other -> Left (TypeMismatch ("unknown run status: " <> other))
 
 data TaskStatus = TaskPending | TaskRunning | TaskReady | TaskStopping | TaskSucceeded | TaskFailed | TaskSkipped | TaskCancelled | TaskTimedOut
+
 derive instance eqTaskStatus :: Eq TaskStatus
 instance decodeTaskStatus :: DecodeJson TaskStatus where
   decodeJson json = do
@@ -60,12 +87,24 @@ instance decodeTaskStatus :: DecodeJson TaskStatus where
 data LogStream = Stdout | Stderr | ProbeStdout | ProbeStderr
 type LogPage = { nextCursor :: String, bytes :: Array Int }
 type TaskResult =
-  { id :: String, status :: TaskStatus, exit_code :: Maybe Int, error :: Maybe String
-  , duration_ms :: Number, stdout :: String, stderr :: String
+  { id :: String
+  , status :: TaskStatus
+  , exit_code :: Maybe Int
+  , error :: Maybe String
+  , duration_ms :: Number
+  , stdout :: String
+  , stderr :: String
   , cache :: { outcome :: String, key :: Maybe String, reason :: String }
   , wait_reason :: Maybe String
+  , outputs :: Maybe (Object String)
+  , artifacts :: Maybe (Object { path :: String, size :: Number, sha256 :: String })
+  , attempts :: Maybe (Array { number :: Int, status :: TaskStatus, exit_code :: Maybe Int, duration_ms :: Number, error :: Maybe String })
+  , condition_skipped :: Maybe Boolean
+  , allowed_failure :: Maybe Boolean
   }
+
 data RunOutcome = RunSucceeded | RunFailed | RunCancelled
+
 derive instance eqRunOutcome :: Eq RunOutcome
 instance decodeRunOutcome :: DecodeJson RunOutcome where
   decodeJson json = do
@@ -75,9 +114,11 @@ instance decodeRunOutcome :: DecodeJson RunOutcome where
       "failed" -> Right RunFailed
       "cancelled" -> Right RunCancelled
       other -> Left (TypeMismatch ("unknown run outcome: " <> other))
+
 type RunResult = { tasks :: Array TaskResult, outcome :: Maybe RunOutcome }
 type EventPage = { nextCursor :: String, events :: Array Json }
 data RunError = InvalidPlan Plan.PlanError | HttpError Int String | TransportError String | DecodeError String
+
 instance showRunError :: Show RunError where
   show (InvalidPlan error) = show error
   show (HttpError code body) = "HTTP " <> show code <> ": " <> body
@@ -85,6 +126,7 @@ instance showRunError :: Show RunError where
   show (DecodeError error) = "Invalid engine response: " <> error
 
 type Response = { status :: Int, body :: String, nextCursor :: String, bytes :: Array Int, idempotencyKey :: String }
+
 foreign import requestWithKeyImpl :: String -> Config -> Boolean -> String -> String -> String -> EffectFnAff Response
 foreign import requestImpl :: Config -> Boolean -> String -> String -> String -> EffectFnAff Response
 foreign import encodeSegment :: String -> String
@@ -92,8 +134,10 @@ foreign import parseEvents :: (String -> Either RunError (Array Json)) -> (Array
 
 client :: Config -> Client
 client = Client
+
 runId :: Run -> String
 runId (Run id) = id
+
 resumeRun :: String -> Run
 resumeRun = Run
 
@@ -141,23 +185,29 @@ submitWithKey key plan (Client config) = case Plan.compile plan of
 
 path :: Run -> String
 path (Run id) = "/v1/runs/" <> encodeSegment id
+
 history :: Int -> Maybe String -> Client -> Aff (Either RunError RunPage)
 history limit cursor engine = do
-  let suffix = case cursor of
-        Nothing -> ""
-        Just value -> "&before=" <> encodeSegment value
+  let
+    suffix = case cursor of
+      Nothing -> ""
+      Just value -> "&before=" <> encodeSegment value
   response <- request false "GET" ("/v1/runs?limit=" <> show limit <> suffix) "" engine
   pure (response >>= \value -> decode value.body)
+
 status :: Run -> Client -> Aff (Either RunError RunState)
 status run engine = do
   response <- request false "GET" (path run) "" engine
   pure (response >>= \value -> decode value.body)
+
 result :: Run -> Client -> Aff (Either RunError RunResult)
 result run engine = do
   response <- request false "GET" (path run <> "/result") "" engine
   pure (response >>= \value -> decode value.body)
+
 cancel :: Run -> Client -> Aff (Either RunError Unit)
 cancel run engine = map (map (const unit)) (request false "POST" (path run <> "/cancel") "" engine)
+
 events :: String -> Run -> Client -> Aff (Either RunError EventPage)
 events cursor run engine = do
   response <- request false "GET" (path run <> "/events?cursor=" <> encodeSegment cursor) "" engine
@@ -169,10 +219,11 @@ events cursor run engine = do
 -- Bytes are lossless, unlike the UTF-8 display text in journal events.
 logs :: LogStream -> Int -> String -> Run -> Client -> Aff (Either RunError LogPage)
 logs stream index cursor run engine = do
-  let name = case stream of
-        Stdout -> "stdout"
-        Stderr -> "stderr"
-        ProbeStdout -> "probe_stdout"
-        ProbeStderr -> "probe_stderr"
+  let
+    name = case stream of
+      Stdout -> "stdout"
+      Stderr -> "stderr"
+      ProbeStdout -> "probe_stdout"
+      ProbeStderr -> "probe_stderr"
   response <- request true "GET" (path run <> "/logs/" <> show index <> "/" <> name <> "?cursor=" <> encodeSegment cursor) "" engine
   pure (map (\value -> { nextCursor: value.nextCursor, bytes: value.bytes }) response)
