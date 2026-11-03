@@ -334,3 +334,16 @@ runs become interrupted after a restart by default. Servers started with
 `--resume-queued` can resume fully admitted, never-started queued runs using the
 same IDs and idempotency keys; keep polling the existing handle. Running or
 interrupted runs are never automatically re-executed.
+
+Cached host tasks can opt into verified external toolchain files:
+
+```purescript
+build # Plan.withCache { inputs: ["src"], outputs: ["dist"], toolchain: "compiler-v1" }
+      # Plan.withToolchainFiles ["/opt/toolchain/bin/compiler"]
+```
+
+Apply `withToolchainFiles` after attaching the cache policy. The host engine hashes
+absolute regular-file targets (including symlinks), permissions, and paths, then
+rechecks them before publication. This requires an engine supporting
+`cache.toolchain_files`; ordinary cache policies omit the new field. Declare all
+relevant toolchain dependencies: this does not discover installed package state.

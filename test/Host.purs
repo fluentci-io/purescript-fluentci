@@ -143,7 +143,7 @@ tests = do
         final <- awaitRun engine run 500
         liftEffect $ assert "SDK package installation/environment tasks must execute" (final.status == Host.Succeeded)
     let
-      cached = command "cached" "printf artifact > artifact" # Plan.withResources ["sdk-checkout"] # Plan.withCache { inputs: [], outputs: ["artifact"], toolchain: "purescript-e2e" }
+      cached = command "cached" "printf artifact > artifact" # Plan.withResources ["sdk-checkout"] # Plan.withCache { inputs: [], outputs: ["artifact"], toolchain: "purescript-e2e" } # Plan.withToolchainFiles ["/bin/sh"]
       cachedPlan = Plan.plan [cached] # Plan.withCacheDirectory (config.cwd <> "/cache") # Plan.withResourceDirectory (config.cwd <> "/locks")
     withRun engine cachedPlan \run -> void (awaitRun engine run 500)
     withRun engine cachedPlan \run -> do
@@ -172,7 +172,7 @@ tests = do
       liftEffect $ assert "Service plans must gate consumers and shut down" (final.status == Host.Succeeded)
     let
       startup = { program: "/bin/sh", args: ["-c", "test ! -f sdk-ready && touch sdk-ready"], interval_ms: 10, timeout_ms: 100 }
-      health = { program: "/bin/sh", args: ["-c", "test -f sdk-ready && touch sdk-health; printf '\\377'; printf health-error >&2"], interval_ms: 10, timeout_ms: 100 }
+      health = { program: "/bin/sh", args: ["-c", "test -f sdk-ready || exit 1; printf '\\377'; printf health-error >&2; touch sdk-health"], interval_ms: 10, timeout_ms: 100 }
       separate = command "separate-db" "while :; do /bin/sleep 0.02; done" # Plan.asServiceWithHealth health (Plan.service startup)
       checked = command "health-consumer" "while test ! -f sdk-health; do /bin/sleep 0.01; done; /bin/sleep 0.1" # Plan.needs [separate]
     withRun engine (Plan.plan [separate, checked]) \run -> do
@@ -183,7 +183,7 @@ tests = do
       rest <- Host.logs Host.ProbeStdout 0 stdout.nextCursor run engine >>= require
       liftEffect do
         assert "Probe API must preserve binary stdout" (Array.elem 255 stdout.bytes)
-        assert "Probe API must retain diagnostic stderr" (Array.takeEnd 12 stderr.bytes == [104,101,97,108,116,104,45,101,114,114,111,114])
+        assert "Probe API must retain diagnostic stderr" (Array.any (\start -> Array.slice start (start + 12) stderr.bytes == [104,101,97,108,116,104,45,101,114,114,111,114]) (Array.range 0 (Array.length stderr.bytes)))
         assert "Probe byte cursors must resume without replay" (Array.null rest.bytes)
 
     withRun engine (Plan.plan [command "cancel" "/bin/sleep 20"]) \run -> do

@@ -10,6 +10,10 @@ export const omitUnusedFields = value => {
     result.cache = { ...result.cache };
     delete result.cache.relocatable;
   }
+  if (result.cache?.toolchain_files?.length === 0) {
+    result.cache = { ...result.cache };
+    delete result.cache.toolchain_files;
+  }
   if (result.service?.health === null) {
     result.service = { ...result.service };
     delete result.service.health;
