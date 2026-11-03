@@ -325,3 +325,10 @@ with unknown creation time; `Nothing` supports older servers' state responses.
 History requires a server supporting `GET /v1/runs`, accepts limits 1–200, and is a
 live listing rather than a frozen snapshot. Use `Host.resumeRun` with a returned ID
 to inspect its results or logs.
+
+
+When the run server enables `--max-queued`, `FluentCI.Host.Client.RunStatus`
+includes `Queued`. Treat both `Queued` and `Running` as nonterminal when polling.
+A run cancelled before execution has a state record but no result report. Queued
+runs interrupted by a server restart are not automatically resumed; submit a new
+run with a new idempotency key when retrying intentionally.

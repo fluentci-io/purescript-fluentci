@@ -19,9 +19,10 @@ newtype Client = Client Config
 newtype Run = Run String
 type RunState = { id :: String, status :: RunStatus, error :: Maybe String, created_at_ms :: Maybe Number }
 type RunPage = { runs :: Array RunState, next_cursor :: Maybe String }
-data RunStatus = Running | Succeeded | Failed | Cancelled | Interrupted
+data RunStatus = Queued | Running | Succeeded | Failed | Cancelled | Interrupted
 derive instance eqRunStatus :: Eq RunStatus
 instance showRunStatus :: Show RunStatus where
+  show Queued = "queued"
   show Running = "running"
   show Succeeded = "succeeded"
   show Failed = "failed"
@@ -31,6 +32,7 @@ instance decodeRunStatus :: DecodeJson RunStatus where
   decodeJson json = do
     value <- decodeJson json
     case value of
+      "queued" -> Right Queued
       "running" -> Right Running
       "succeeded" -> Right Succeeded
       "failed" -> Right Failed

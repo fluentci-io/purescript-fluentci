@@ -31,7 +31,7 @@ require (Right value) = pure value
 awaitRun :: Host.Client -> Host.Run -> Int -> Aff Host.RunState
 awaitRun engine run attempts = do
   state <- Host.status run engine >>= require
-  if state.status /= Host.Running then pure state
+  if state.status /= Host.Running && state.status /= Host.Queued then pure state
   else if attempts <= 0 then liftEffect (throw "run did not finish")
   else delay (Milliseconds 20.0) *> awaitRun engine run (attempts - 1)
 
@@ -47,6 +47,9 @@ waitForChild attempts = do
 
 tests :: Aff Unit
 tests = do
+  queuedJson <- require (jsonParser "{\"id\":\"queued-run\",\"status\":\"queued\",\"error\":null}")
+  queued <- require (decodeJson queuedJson :: Either JsonDecodeError Host.RunState)
+  liftEffect $ assert "Queued runs must decode as nonterminal admission state" (queued.status == Host.Queued)
   legacyJson <- require (jsonParser "{\"tasks\":[]}")
   legacy <- require (decodeJson legacyJson :: Either JsonDecodeError Host.RunResult)
   liftEffect $ assert "Older reports without run outcomes must remain readable" (legacy.outcome == Nothing)
