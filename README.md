@@ -162,7 +162,7 @@ and digest, regenerate, and review the diff. No compiler or engine host runtime 
 installed by the generator. CI compiles the PureScript API, checks generated files,
 and exercises guest transports; engine CI compiles and invokes the real Wasm guest.
 
-## Parallel matrices (unreleased engine API)
+## Parallel matrices
 
 `FluentCI.Matrix` expands named typed cases into ordinary host tasks. `product`
 creates Cartesian products, `exclude` filters by a predicate, and `include`
@@ -198,5 +198,5 @@ fresh run directory, journal, result and log files. Legacy `Pipeline` values rem
 serial and are not accepted as native matrix tasks. All cases run on the current
 host; remote/cross-OS worker placement is not provided.
 
-This API requires a matrix-enabled engine source build containing `execute_plan`;
-the already-published engine 0.6.0 does not expose that import.
+This API requires FluentCI Engine 0.6.1 or later, which exposes `execute_plan`,
+and a matching SDK.
