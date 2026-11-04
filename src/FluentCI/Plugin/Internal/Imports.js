@@ -283,7 +283,10 @@ function invokeRaw(name, input) {
   }
   try {
     const result = signature.input ? functions[name](Memory.fromString(input).offset) : functions[name]();
-    return signature.output ? Memory.find(result).readString() : "";
+    if (!signature.output) return "";
+    // Extism returns offset 0 for an empty block (e.g. an unset environment variable).
+    const block = result ? Memory.find(result) : undefined;
+    return block ? block.readString() : "";
   } catch (error) {
     throw failure("host-failure", name, error instanceof Error ? error.message : String(error));
   }

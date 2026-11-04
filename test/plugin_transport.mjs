@@ -147,6 +147,14 @@ test("missing imports, malformed engine responses and execution failures are dis
   assert.equal(run(P.pipeline("build")).error.kind, "missing-host");
 });
 
+test("an empty host result at offset 0 reads as an empty string", () => {
+  const { functions } = guest();
+  functions.get_env = () => 0n;
+  const find = globalThis.Memory.find;
+  globalThis.Memory.find = id => id === 0n ? undefined : find(id);
+  assert.deepEqual(perform("get_env", ["UNSET_VARIABLE"]), { value: "" });
+});
+
 test("guest input and output stay explicit effects", () => {
   const { calls } = guest();
   assert.deepEqual(perform("input", []), { value: "input 世界" });
